@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Medical Laboratoire Service — Assistant commercial</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  html, body, #root { height: 100%; margin: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+  .animate-bounce { animation: bounce 1.2s infinite ease-in-out; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .animate-spin { animation: spin 1s linear infinite; }
+</style>
+</head>
+<body class="bg-slate-100">
+<div id="root"></div>
+
+<script type="text/plain" id="app-source">
+const { useState, useEffect, useRef } = React;
+
+/* ---------- Icones SVG (remplacent lucide-react) ---------- */
+function Icon({ children, size = 16, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      {children}
+    </svg>
+  );
+}
+const Send = (p) => <Icon {...p}><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></Icon>;
+const Settings = (p) => <Icon {...p}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></Icon>;
+const X = (p) => <Icon {...p}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></Icon>;
+const Loader2 = (p) => <Icon {...p} className={(p.className || "") + " animate-spin"}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></Icon>;
+const ExternalLink = (p) => <Icon {...p}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></Icon>;
+const Phone = (p) => <Icon {...p}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></Icon>;
+const ShoppingCart = (p) => <Icon {...p}><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" /></Icon>;
+
+/* ---------- Stockage local (remplace window.storage de l'environnement artefact) ---------- */
+const storage = {
+  async get(key) {
+    const v = localStorage.getItem(key);
+    return v !== null ? { value: v } : null;
+  },
+  async set(key, value) {
+    localStorage.setItem(key, value);
+  },
+  async list(prefix) {
+    const keys = Object.keys(localStorage).filter((k) => k.startsWith(prefix));
+    return { keys };
+  }
+};
+
+/* ====================================================================
+   IMPORTANT — Appel API Claude
+   L'environnement final n'a pas de backend : l'appel direct à
+   https://api.anthropic.com depuis le navigateur est bloqué par CORS et
+   exposerait une clé API si on en ajoutait une.
+   Remplacez ANTHROPIC_PROXY_URL par l'URL de votre propre backend/proxy
+   qui détient la clé API et relaie la requête à Anthropic.
+   ==================================================================== */
+const ANTHROPIC_PROXY_URL = "http://localhost:3001/api/chat";
+// Une fois le serveur proxy déployé en ligne (Render, Railway, etc.),
+// remplacez cette URL par l'URL publique de votre backend.
+
+const SYSTEM_PROMPT = `Vous êtes l'assistant commercial virtuel de Medical Laboratoire Service (MLS), distributeur marocain de dispositifs médicaux (plus de 3000 références, site https://www.mlslabo.ma/).
+
+Catégories disponibles : Diagnostic, Appareils électromédicaux, Instrumentation, Équipement médico-hospitalier, Aide patient & aide à la marche, Orthopédie, Sabots & vêtements médicaux, Gériatrie, Médical et pharmacie, Poids & mesures, Consommable médical, Santé et bien-être, Accessoires divers, Matériel didactique de médecine.
+
+Votre rôle : répondre aux questions des prospects et clients sur les produits, donner des recommandations pertinentes, comprendre le projet du prospect, et orienter vers une demande de devis ou une mise en contact avec l'équipe commerciale.
+
+Règles strictes :
+- Ton formel, vouvoiement systématique, professionnel, sobre, jamais familier ni trop "vendeur".
+- Cherchez à comprendre le projet ou le contexte du prospect (type de structure : cabinet, clinique, hôpital, EHPAD, etc., taille, échéance) lorsque c'est pertinent, par une question simple et naturelle, afin de mieux orienter vos recommandations et d'informer notre équipe commerciale.
+- Rédigez exclusivement en texte brut, sans aucun markdown (pas d'astérisques, pas de dièses, pas de tirets de titre). Pour une liste, utilisez des phrases simples ou des tirets basiques.
+- Utilisez l'outil de recherche web pour obtenir des informations à jour, en vous limitant exclusivement au site mlslabo.ma (incluez "site:mlslabo.ma" dans vos recherches autant que possible). N'utilisez aucune autre source pour parler des produits MLS.
+- Ne donnez jamais de prix précis : les tarifs ne sont pas publics. Orientez systématiquement vers une demande de devis pour obtenir un prix.
+- Pour CHAQUE produit que vous présentez ou recommandez, même dans une liste de plusieurs produits, insérez le bloc structuré suivant juste après la ou les phrases qui en parlent (pas regroupés à la fin du message), avec ces clés uniquement (n'omettez aucun produit cité) :
+<PRODUCT>{"name":"nom du produit","description":"description en 1-2 phrases, texte brut sans markdown","url":"lien exact vers la page produit mlslabo.ma"}</PRODUCT>
+- Si l'utilisateur exprime une intention claire de demande de devis (prix, devis, commande, quantité, achat), terminez votre réponse par <ACTION>devis</ACTION>
+- Si l'utilisateur souhaite simplement être recontacté ou a une question nécessitant un commercial, terminez par <ACTION>contact</ACTION>
+- Si vous ne trouvez pas une information sur mlslabo.ma, dites-le honnêtement plutôt que d'inventer, et proposez une mise en contact avec un commercial.
+- Restez concis.`;
+
+const ADMIN_CODE = "MLS2026";
+const REGIONS = [
+  "Tanger-Tétouan-Al Hoceïma",
+  "L'Oriental",
+  "Fès-Meknès",
+  "Rabat-Salé-Kénitra",
+  "Béni Mellal-Khénifra",
+  "Casablanca-Settat",
+  "Marrakech-Safi",
+  "Drâa-Tafilalet",
+  "Souss-Massa",
+  "Guelmim-Oued Noun",
+  "Laâyoune-Sakia El Hamra",
+  "Dakhla-Oued Ed-Dahab"
+];
+
+function ProductCard({ product, onAdd }) {
+  const [qty, setQty] = useState(1);
+  return (
+    <div className="my-2 border border-slate-200 rounded-md p-2 bg-slate-50">
+      <a href={product.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm font-medium text-blue-900 hover:underline">
+        <ExternalLink size={13} /> {product.name}
+      </a>
+      {product.description && <div className="text-xs text-slate-600 mt-1">{product.description}</div>}
+      <div className="flex items-center gap-2 mt-2">
+        <input
+          type="number"
+          min="1"
+          value={qty}
+          onChange={(e) => setQty(Math.max(1, parseInt(e.target.value, 10) || 1))}
+          className="w-14 border border-slate-300 rounded text-xs text-center py-1"
+        />
+        <button onClick={() => onAdd(product, qty)} className="flex items-center gap-1 text-xs text-white bg-green-600 rounded px-2 py-1 hover:bg-green-700">
+          <ShoppingCart size={12} /> Ajouter au panier
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function partsToText(parts) {
+  return parts.map((p) => (p.type === "text" ? p.content : p.data.name + (p.data.url ? " (" + p.data.url + ")" : ""))).join(" ");
+}
+
+function MLSChatbot() {
+  const [messages, setMessages] = useState([
+    { role: "assistant", parts: [{ type: "text", content: "Bonjour et bienvenue chez Medical Laboratoire Service. Je suis l'assistant virtuel de MLS, à votre disposition pour vous renseigner sur nos produits (diagnostic, orthopédie, équipement médico-hospitalier, aide à la marche, et bien plus) et pour vous mettre en relation avec notre équipe commerciale. Comment puis-je vous aider aujourd'hui ?" }] }
+  ]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [cart, setCart] = useState([]);
+  const [showCart, setShowCart] = useState(false);
+  const [toast, setToast] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [formType, setFormType] = useState("devis");
+  const [formData, setFormData] = useState({ nom: "", societe: "", telephone: "", email: "", region: "", produit: "", message: "" });
+  const [formError, setFormError] = useState("");
+  const [summarizing, setSummarizing] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [adminUnlocked, setAdminUnlocked] = useState(false);
+  const [adminCodeInput, setAdminCodeInput] = useState("");
+  const [config, setConfig] = useState({ salesEmail: "commercial@mlslabo.ma", sheetsUrl: "" });
+  const [recentLeads, setRecentLeads] = useState([]);
+  const endRef = useRef(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await storage.get("mls_config");
+        if (res && res.value) setConfig((prev) => ({ ...prev, ...JSON.parse(res.value) }));
+      } catch (e) {}
+    })();
+  }, []);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(""), 2000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  function parseResponse(text) {
+    let action = null;
+    const actionMatch = text.match(/<ACTION>(devis|contact)<\/ACTION>/);
+    if (actionMatch) {
+      action = actionMatch[1];
+      text = text.replace(/<ACTION>(devis|contact)<\/ACTION>/, "").trim();
+    }
+    const parts = [];
+    const products = [];
+    const productRegex = /<PRODUCT>([\s\S]*?)<\/PRODUCT>/g;
+    let lastIndex = 0;
+    let m;
+    while ((m = productRegex.exec(text)) !== null) {
+      const chunk = text.slice(lastIndex, m.index).trim();
+      if (chunk) parts.push({ type: "text", content: chunk });
+      try {
+        const obj = JSON.parse(m[1]);
+        if (obj && obj.name) {
+          parts.push({ type: "product", data: obj });
+          products.push(obj);
+        }
+      } catch (e) {}
+      lastIndex = productRegex.lastIndex;
+    }
+    const remaining = text.slice(lastIndex).trim();
+    if (remaining) parts.push({ type: "text", content: remaining });
+    if (parts.length === 0) parts.push({ type: "text", content: text.trim() });
+    return { parts, products, action };
+  }
+
+  async function sendMessage(text) {
+    const content = text.trim();
+    if (!content || loading) return;
+    const newMessages = [...messages, { role: "user", parts: [{ type: "text", content }] }];
+    setMessages(newMessages);
+    setInput("");
+    setLoading(true);
+    try {
+      const apiMessages = newMessages.map((m) => ({ role: m.role, content: partsToText(m.parts) }));
+      const res = await fetch(ANTHROPIC_PROXY_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1000,
+          system: SYSTEM_PROMPT,
+          messages: apiMessages,
+          tools: [{ type: "web_search_20250305", name: "web_search" }]
+        })
+      });
+      const data = await res.json();
+      const rawText = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
+      const { parts, products, action } = parseResponse(rawText || "Je n'ai pas pu trouver de réponse précise à votre question. Souhaitez-vous être mis en contact avec un commercial ?");
+      setMessages((prev) => [...prev, { role: "assistant", parts }]);
+      if (action === "devis" && products.length > 0) {
+        products.forEach((p) => addToCart(p, 1));
+      }
+    } catch (e) {
+      setMessages((prev) => [...prev, { role: "assistant", parts: [{ type: "text", content: "Désolé, une erreur technique est survenue. Vous pouvez réessayer ou demander directement à être recontacté." }] }]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function addToCart(product, quantity) {
+    const qty = Math.max(1, parseInt(quantity, 10) || 1);
+    setCart((prev) => {
+      const idx = prev.findIndex((p) => p.name === product.name);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], quantity: copy[idx].quantity + qty };
+        return copy;
+      }
+      return [...prev, { name: product.name, url: product.url || "", quantity: qty }];
+    });
+    setToast("Ajouté au panier : " + product.name + " (x" + qty + ")");
+  }
+
+  function updateQty(index, delta) {
+    setCart((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], quantity: Math.max(1, copy[index].quantity + delta) };
+      return copy;
+    });
+  }
+
+  function setQty(index, value) {
+    const n = Math.max(1, parseInt(value, 10) || 1);
+    setCart((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], quantity: n };
+      return copy;
+    });
+  }
+
+  function removeFromCart(index) {
+    setCart((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function cartCount() {
+    return cart.reduce((sum, i) => sum + i.quantity, 0);
+  }
+
+  function produitsSummary() {
+    return cart.map((i) => i.name + " (x" + i.quantity + ")" + (i.url ? " - " + i.url : "")).join("\n");
+  }
+
+  async function generateSummary() {
+    const convo = messages.filter((m) => m.role === "user").map((m) => "Client : " + partsToText(m.parts)).join("\n");
+    if (!convo) return "";
+    try {
+      const res = await fetch(ANTHROPIC_PROXY_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1000,
+          system: "Résumez en 2 à 3 phrases, en français, de façon factuelle et formelle, le projet et le besoin exprimés par ce prospect (contexte, type de structure si mentionné, produits envisagés), à l'attention d'un commercial. Texte brut uniquement, sans markdown. Ne donnez que le résumé, sans préambule.",
+          messages: [{ role: "user", content: convo }]
+        })
+      });
+      const data = await res.json();
+      return (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join(" ").trim();
+    } catch (e) {
+      return "";
+    }
+  }
+
+  async function openForm(type, fallbackProduct) {
+    setFormType(type);
+    setFormError("");
+    const produit = cart.length > 0 ? produitsSummary() : (fallbackProduct || "");
+    setFormData((prev) => ({ ...prev, produit, message: "" }));
+    setShowForm(true);
+    const hasUserTurns = messages.some((m) => m.role === "user");
+    if (hasUserTurns) {
+      setSummarizing(true);
+      const summary = await generateSummary();
+      setFormData((prev) => ({ ...prev, message: summary || prev.message }));
+      setSummarizing(false);
+    }
+  }
+
+  async function handleSubmitForm() {
+    if (!formData.nom || !formData.societe || !formData.region || (!formData.telephone && !formData.email)) {
+      setFormError("Merci de renseigner votre nom, le nom de l'entreprise, la région, et au moins un moyen de contact (téléphone ou email).");
+      return;
+    }
+    setFormError("");
+    const payload = { timestamp: new Date().toISOString(), type: formType, ...formData };
+    try { await storage.set("lead:" + Date.now(), JSON.stringify(payload)); } catch (e) {}
+    if (config.sheetsUrl) {
+      try {
+        await fetch(config.sheetsUrl, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+        });
+      } catch (e) {}
+    }
+    const subject = encodeURIComponent("Nouvelle demande " + (formType === "devis" ? "de devis" : "de contact") + " - " + formData.societe);
+    const body = encodeURIComponent(
+      "Nom du contact : " + formData.nom + "\n" +
+      "Entreprise : " + formData.societe + "\n" +
+      "Téléphone : " + formData.telephone + "\n" +
+      "Email : " + formData.email + "\n" +
+      "Région : " + formData.region + "\n" +
+      "Produit(s) concerné(s) :\n" + formData.produit + "\n\n" +
+      "Résumé de la discussion : " + formData.message
+    );
+    const mailto = "mailto:" + (config.salesEmail || "commercial@mlslabo.ma") + "?subject=" + subject + "&body=" + body;
+    window.open(mailto, "_blank");
+    setShowForm(false);
+    setMessages((prev) => [...prev, { role: "assistant", parts: [{ type: "text", content: "Merci " + formData.nom + ", votre demande a bien été préparée. Une fenêtre de messagerie vient de s'ouvrir pour l'envoyer à notre équipe commerciale" + (config.sheetsUrl ? " (une copie a également été enregistrée automatiquement)" : "") + ". Nous reviendrons vers vous très rapidement." }] }]);
+    setFormData({ nom: "", societe: "", telephone: "", email: "", region: "", produit: "", message: "" });
+    setCart([]);
+  }
+
+  async function loadLeads() {
+    try {
+      const list = await storage.list("lead:");
+      if (list && list.keys) {
+        const recent = list.keys.slice(-20);
+        const items = await Promise.all(
+          recent.map(async (k) => {
+            try {
+              const r = await storage.get(k);
+              return r ? JSON.parse(r.value) : null;
+            } catch (e) {
+              return null;
+            }
+          })
+        );
+        setRecentLeads(items.filter(Boolean).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+      }
+    } catch (e) {}
+  }
+
+  async function saveConfig() {
+    try { await storage.set("mls_config", JSON.stringify(config)); } catch (e) {}
+    setShowAdmin(false);
+  }
+
+  function unlockAdmin() {
+    if (adminCodeInput === ADMIN_CODE) {
+      setAdminUnlocked(true);
+      loadLeads();
+    } else {
+      setAdminUnlocked(false);
+    }
+  }
+
+  return (
+    <div className="relative flex flex-col w-full h-full bg-slate-50 overflow-hidden">
+      <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="flex items-baseline leading-none">
+            <span className="text-2xl font-bold text-blue-900">M</span>
+            <span className="text-2xl font-bold text-green-600">L</span>
+            <span className="text-2xl font-bold text-blue-900">S</span>
+          </div>
+          <div className="border-l border-slate-300 pl-2">
+            <div className="font-semibold text-blue-900 text-sm leading-tight">Medical Laboratoire Service</div>
+            <div className="text-slate-500 text-xs">Assistant commercial digital</div>
+          </div>
+        </div>
+        <button onClick={() => { setShowAdmin(true); setAdminUnlocked(false); setAdminCodeInput(""); }} className="text-slate-400 hover:text-blue-900" title="Configuration">
+          <Settings size={18} />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
+        {messages.map((m, i) => (
+          <div key={i} className={"flex " + (m.role === "user" ? "justify-end" : "justify-start")}>
+            <div className={"w-3/4 rounded-lg px-3 py-2 text-sm text-left " + (m.role === "user" ? "bg-blue-900 text-white" : "bg-white border border-slate-200 text-slate-800")}>
+              {m.parts.map((part, k) =>
+                part.type === "text" ? (
+                  <div key={k} className="whitespace-pre-wrap">{part.content}</div>
+                ) : (
+                  <ProductCard key={k} product={part.data} onAdd={addToCart} />
+                )
+              )}
+            </div>
+          </div>
+        ))}
+        {loading && (
+          <div className="flex justify-start">
+            <div className="bg-white border border-slate-200 rounded-lg px-3 py-2 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
+              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
+              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
+            </div>
+          </div>
+        )}
+        <div ref={endRef} />
+      </div>
+
+      {toast && (
+        <div className="absolute left-1/2 bottom-24 bg-green-600 text-white text-xs rounded px-3 py-1.5 shadow" style={{ transform: "translateX(-50%)" }}>
+          {toast}
+        </div>
+      )}
+
+      <div className="px-3 pt-2 flex justify-center gap-2 border-t border-slate-200 bg-white shrink-0">
+        <div className="w-3/4 flex gap-2">
+        <button onClick={() => setShowCart(true)} className="flex-1 flex items-center justify-center gap-1 text-xs bg-green-600 text-white rounded px-2 py-1.5 hover:bg-green-700">
+          <ShoppingCart size={13} /> Panier
+          {cartCount() > 0 && <span className="ml-1 bg-white text-green-700 rounded-full px-1.5 text-xs leading-none py-0.5">{cartCount()}</span>}
+        </button>
+        <button onClick={() => openForm("contact", "")} className="flex-1 flex items-center justify-center gap-1 text-xs bg-blue-900 text-white rounded px-2 py-1.5 hover:bg-blue-800">
+          <Phone size={13} /> Contact
+        </button>
+        </div>
+      </div>
+
+      <div className="p-3 bg-white flex gap-2 shrink-0">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") sendMessage(input); }}
+          placeholder="Posez votre question sur nos produits..."
+          className="flex-1 border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+        />
+        <button onClick={() => sendMessage(input)} disabled={loading} className="bg-blue-900 text-white rounded px-3 py-2 hover:bg-blue-800 disabled:opacity-50">
+          {loading ? <Loader2 size={16} /> : <Send size={16} />}
+        </button>
+      </div>
+
+      {showCart && (
+        <div className="fixed inset-0 bg-slate-900 bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-4 w-full" style={{ maxWidth: "420px", maxHeight: "80vh" }}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="font-semibold text-slate-800">Demande de devis</div>
+              <button onClick={() => setShowCart(false)}><X size={18} className="text-slate-400" /></button>
+            </div>
+            {cart.length === 0 ? (
+              <div className="text-sm text-slate-500">Aucun produit sélectionné. Ajoutez des produits depuis les réponses de l'assistant pour préparer votre demande de devis.</div>
+            ) : (
+              <div className="space-y-2 overflow-y-auto" style={{ maxHeight: "50vh" }}>
+                {cart.map((item, i) => (
+                  <div key={i} className="flex items-center gap-2 border border-slate-200 rounded p-2">
+                    <div className="flex-1">
+                      {item.url ? (
+                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-900 hover:underline">{item.name}</a>
+                      ) : (
+                        <div className="text-sm font-medium text-slate-800">{item.name}</div>
+                      )}
+                      <div className="flex items-center gap-2 mt-1">
+                        <button onClick={() => updateQty(i, -1)} className="w-6 h-6 border border-slate-300 rounded text-slate-600">-</button>
+                        <input type="number" min="1" value={item.quantity} onChange={(e) => setQty(i, e.target.value)} className="w-12 border border-slate-300 rounded text-xs text-center py-1" />
+                        <button onClick={() => updateQty(i, 1)} className="w-6 h-6 border border-slate-300 rounded text-slate-600">+</button>
+                      </div>
+                    </div>
+                    <button onClick={() => removeFromCart(i)} className="text-slate-400 hover:text-red-500"><X size={16} /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {cart.length > 0 && (
+              <button onClick={() => { setShowCart(false); openForm("devis", ""); }} className="w-full mt-3 bg-blue-900 text-white rounded px-3 py-2 text-sm hover:bg-blue-800">
+                Envoyer ma demande de devis ({cartCount()})
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showForm && (
+        <div className="fixed inset-0 bg-slate-900 bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-4 w-full overflow-y-auto" style={{ maxWidth: "400px", maxHeight: "85vh" }}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="font-semibold text-slate-800">{formType === "devis" ? "Demande de devis" : "Être recontacté"}</div>
+              <button onClick={() => setShowForm(false)}><X size={18} className="text-slate-400" /></button>
+            </div>
+            <div className="space-y-2">
+              <input placeholder="Nom de l'entreprise *" value={formData.societe} onChange={(e) => setFormData({ ...formData, societe: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+              <input placeholder="Nom du contact *" value={formData.nom} onChange={(e) => setFormData({ ...formData, nom: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+              <input placeholder="Téléphone" value={formData.telephone} onChange={(e) => setFormData({ ...formData, telephone: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+              <input type="email" placeholder="Email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+              <div className="text-xs text-slate-400">Téléphone ou email requis (au moins un des deux)</div>
+              <select value={formData.region} onChange={(e) => setFormData({ ...formData, region: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm text-slate-700">
+                <option value="">Région de l'entreprise *</option>
+                {REGIONS.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+              <textarea placeholder="Produit(s) concerné(s)" value={formData.produit} onChange={(e) => setFormData({ ...formData, produit: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" rows={3} />
+              <textarea placeholder={summarizing ? "Génération du résumé en cours..." : "Résumé du projet et du besoin"} value={formData.message} onChange={(e) => setFormData({ ...formData, message: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" rows={3} />
+              {formError && <div className="text-red-600 text-xs">{formError}</div>}
+              <button type="button" onClick={handleSubmitForm} className="w-full bg-blue-900 text-white rounded px-3 py-2 text-sm hover:bg-blue-800">Envoyer la demande</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAdmin && (
+        <div className="fixed inset-0 bg-slate-900 bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-4 w-full overflow-y-auto" style={{ maxWidth: "420px", maxHeight: "80vh" }}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="font-semibold text-slate-800">Configuration</div>
+              <button onClick={() => setShowAdmin(false)}><X size={18} className="text-slate-400" /></button>
+            </div>
+            {!adminUnlocked ? (
+              <div className="space-y-2">
+                <div className="text-xs text-slate-500">Réservé à l'équipe MLS. Saisissez le code d'accès.</div>
+                <input type="password" value={adminCodeInput} onChange={(e) => setAdminCodeInput(e.target.value)} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" placeholder="Code d'accès" />
+                <button onClick={unlockAdmin} className="w-full bg-blue-900 text-white rounded px-3 py-2 text-sm hover:bg-blue-800">Valider</button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <div className="text-xs font-medium text-slate-600 mb-1">Email commercial (pour le bouton mailto)</div>
+                  <input value={config.salesEmail} onChange={(e) => setConfig({ ...config, salesEmail: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-slate-600 mb-1">URL Google Apps Script (optionnel, journalisation auto. vers Google Sheets)</div>
+                  <input value={config.sheetsUrl} onChange={(e) => setConfig({ ...config, sheetsUrl: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" placeholder="https://script.google.com/macros/s/.../exec" />
+                </div>
+                <button onClick={saveConfig} className="w-full bg-blue-900 text-white rounded px-3 py-2 text-sm hover:bg-blue-800">Enregistrer</button>
+                <div className="border-t border-slate-200 pt-3">
+                  <div className="text-xs font-medium text-slate-600 mb-2">Demandes récentes (sauvegarde de secours, {recentLeads.length})</div>
+                  <div className="space-y-1 max-h-40 overflow-y-auto">
+                    {recentLeads.length === 0 && <div className="text-xs text-slate-400">Aucune demande enregistrée pour le moment.</div>}
+                    {recentLeads.map((l, i) => (
+                      <div key={i} className="text-xs border border-slate-100 rounded p-2 bg-slate-50">
+                        <div className="font-medium">{l.societe} — {l.type === "devis" ? "Devis" : "Contact"}</div>
+                        <div className="text-slate-500">{l.nom} · {l.telephone} · {l.email}</div>
+                        <div className="text-slate-500">{l.region}</div>
+                        {l.produit && <div className="text-slate-500 whitespace-pre-wrap">Produit(s) : {l.produit}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<MLSChatbot />);
+</script>
+<script>
+  var source = document.getElementById("app-source").textContent;
+  var transformed = Babel.transform(source, {
+    presets: [["react", { runtime: "classic" }]]
+  }).code;
+  (0, eval)(transformed);
+</script>
+</body>
+</html>
