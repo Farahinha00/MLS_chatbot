@@ -40,21 +40,6 @@ const ExternalLink = (p) => <Icon {...p}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0
 const Phone = (p) => <Icon {...p}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></Icon>;
 const ShoppingCart = (p) => <Icon {...p}><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" /></Icon>;
 
-/* ---------- Stockage local (remplace window.storage de l'environnement artefact) ---------- */
-const storage = {
-  async get(key) {
-    const v = localStorage.getItem(key);
-    return v !== null ? { value: v } : null;
-  },
-  async set(key, value) {
-    localStorage.setItem(key, value);
-  },
-  async list(prefix) {
-    const keys = Object.keys(localStorage).filter((k) => k.startsWith(prefix));
-    return { keys };
-  }
-};
-
 /* ====================================================================
    IMPORTANT — Appel API Claude
    L'environnement final n'a pas de backend : l'appel direct à
@@ -63,9 +48,10 @@ const storage = {
    Remplacez ANTHROPIC_PROXY_URL par l'URL de votre propre backend/proxy
    qui détient la clé API et relaie la requête à Anthropic.
    ==================================================================== */
-const ANTHROPIC_PROXY_URL = "https://mls-chatbot-2g4f.onrender.com/api/chat";
+const API_BASE_URL = "https://mls-chatbot-2g4f.onrender.com";
 // Une fois le serveur proxy déployé en ligne (Render, Railway, etc.),
 // remplacez cette URL par l'URL publique de votre backend.
+const ANTHROPIC_PROXY_URL = API_BASE_URL + "/api/chat";
 
 const SYSTEM_PROMPT = `Vous êtes l'assistant commercial virtuel de Medical Laboratoire Service (MLS), distributeur marocain de dispositifs médicaux (plus de 3000 références, site https://www.mlslabo.ma/).
 
@@ -73,33 +59,36 @@ Catégories disponibles : Diagnostic, Appareils électromédicaux, Instrumentati
 
 Votre rôle : répondre aux questions des prospects et clients sur les produits, donner des recommandations pertinentes, comprendre le projet du prospect, et orienter vers une demande de devis ou une mise en contact avec l'équipe commerciale.
 
+Couverture géographique (zones de livraison/commerciaux), à utiliser pour répondre à toute question sur une ville, une livraison ou un commercial régional. Si un client mentionne une ville absente de cette liste, identifiez la zone la plus proche ou la région marocaine correspondante pour répondre de façon cohérente (par exemple, une ville proche de Rabat ou Casablanca suit en général les mêmes délais que ces villes) :
+ZONE 1 (Rania) : Berkane, Agadir, Dakhla, Guelmim, Laâyoune, Fès, Oujda, Marrakech, Safi, Ouarzazate, Guercif, Inezgane, Aït Melloul
+ZONE 2 (Houria) : Casablanca, Jemaa Shaim, Kasba Tadla, Settat, Oualad Taima, Béni Mellal, Khouribga, Mohammedia, Fkih Ben Salah, Ben Slimane
+ZONE 3 (Niemat) : Larache, Ksar El Kébir, Tiflet, Kénitra, Rabat, Salé, Tanger, Témara, Skhirat, Jorf El Melha
+ZONE 4 (Fatima) : Chefchaouen, Fnideq, Imzouren, Khénifra, M'diq, Al Hoceïma, Meknès, Souk Larbaa, Taza, Sidi Slimane, Tétouan, Khémisset, Nador, Ouezzane
+ZONE 5 (Ibtissam) : Chtouka Aït Baha, Bouarfa, Tan-Tan, Kelaat Sraghna, Essaouira, El Jadida, Berrechid, El Youssoufia, Had Soualem, Azrou, Séfrou, Sidi Kacem, Boujdour, Taroudant, Tiznit, Errachidia, Tinghir, Zagora
+
 Règles strictes :
 - Ton formel, vouvoiement systématique, professionnel, sobre, jamais familier ni trop "vendeur".
 - Cherchez à comprendre le projet ou le contexte du prospect (type de structure : cabinet, clinique, hôpital, EHPAD, etc., taille, échéance) lorsque c'est pertinent, par une question simple et naturelle, afin de mieux orienter vos recommandations et d'informer notre équipe commerciale.
 - Rédigez exclusivement en texte brut, sans aucun markdown (pas d'astérisques, pas de dièses, pas de tirets de titre). Pour une liste, utilisez des phrases simples ou des tirets basiques.
 - Utilisez l'outil de recherche web pour obtenir des informations à jour, en vous limitant exclusivement au site mlslabo.ma (incluez "site:mlslabo.ma" dans vos recherches autant que possible). N'utilisez aucune autre source pour parler des produits MLS.
+- Pour toute question géographique (livraison, délais, couverture par ville), utilisez la liste des zones ci-dessus pour rattacher la ville mentionnée à sa zone/région, puis appuyez-vous sur les informations de livraison trouvées sur mlslabo.ma pour cette région (par exemple, si le site indique une livraison à Rabat et Casablanca sous X jours et "reste du Maroc" sous Y jours, une ville d'une autre zone suit la règle "reste du Maroc"). Ne répondez jamais "je ne sais pas" à une question de livraison pour une ville marocaine sans avoir fait ce rapprochement géographique.
 - Ne donnez jamais de prix précis : les tarifs ne sont pas publics. Orientez systématiquement vers une demande de devis pour obtenir un prix.
 - Pour CHAQUE produit que vous présentez ou recommandez, même dans une liste de plusieurs produits, insérez le bloc structuré suivant juste après la ou les phrases qui en parlent (pas regroupés à la fin du message), avec ces clés uniquement (n'omettez aucun produit cité) :
 <PRODUCT>{"name":"nom du produit","description":"description en 1-2 phrases, texte brut sans markdown","url":"lien exact vers la page produit mlslabo.ma"}</PRODUCT>
+- La description de chaque produit doit être courte (1 phrase, 20 mots maximum). Si la description trouvée sur le site est plus longue, résumez-la vous-même en gardant l'information essentielle (nature du produit, usage principal), sans la recopier intégralement.
 - Si l'utilisateur exprime une intention claire de demande de devis (prix, devis, commande, quantité, achat), terminez votre réponse par <ACTION>devis</ACTION>
 - Si l'utilisateur souhaite simplement être recontacté ou a une question nécessitant un commercial, terminez par <ACTION>contact</ACTION>
-- Si vous ne trouvez pas une information sur mlslabo.ma, dites-le honnêtement plutôt que d'inventer, et proposez une mise en contact avec un commercial.
+- Si, après avoir effectivement cherché sur mlslabo.ma et appliqué le rapprochement géographique le cas échéant, vous ne trouvez vraiment pas l'information demandée, dites-le honnêtement plutôt que d'inventer, proposez une mise en contact avec un commercial, et terminez votre réponse par <UNANSWERED>oui</UNANSWERED>
 - Restez concis.`;
 
 const ADMIN_CODE = "MLS2026";
-const REGIONS = [
-  "Tanger-Tétouan-Al Hoceïma",
-  "L'Oriental",
-  "Fès-Meknès",
-  "Rabat-Salé-Kénitra",
-  "Béni Mellal-Khénifra",
-  "Casablanca-Settat",
-  "Marrakech-Safi",
-  "Drâa-Tafilalet",
-  "Souss-Massa",
-  "Guelmim-Oued Noun",
-  "Laâyoune-Sakia El Hamra",
-  "Dakhla-Oued Ed-Dahab"
+
+const ZONES_DEFAULT = [
+  { zone: "ZONE 1", commercial: "Rania", telephone: "", villes: ["Berkane", "Agadir", "Dakhla", "Guelmim", "Laâyoune", "Fès", "Oujda", "Marrakech", "Safi", "Ouarzazate", "Guercif", "Inezgane", "Aït Melloul"] },
+  { zone: "ZONE 2", commercial: "Houria", telephone: "", villes: ["Casablanca", "Jemaa Shaim", "Kasba Tadla", "Settat", "Oualad Taima", "Béni Mellal", "Khouribga", "Mohammedia", "Fkih Ben Salah", "Ben Slimane"] },
+  { zone: "ZONE 3", commercial: "Niemat", telephone: "", villes: ["Larache", "Ksar El Kébir", "Tiflet", "Kénitra", "Rabat", "Salé", "Tanger", "Témara", "Skhirat", "Jorf El Melha"] },
+  { zone: "ZONE 4", commercial: "Fatima", telephone: "", villes: ["Chefchaouen", "Fnideq", "Imzouren", "Khénifra", "M'diq", "Al Hoceïma", "Meknès", "Souk Larbaa", "Taza", "Sidi Slimane", "Tétouan", "Khémisset", "Nador", "Ouezzane"] },
+  { zone: "ZONE 5", commercial: "Ibtissam", telephone: "", villes: ["Chtouka Aït Baha", "Bouarfa", "Tan-Tan", "Kelaat Sraghna", "Essaouira", "El Jadida", "Berrechid", "El Youssoufia", "Had Soualem", "Azrou", "Séfrou", "Sidi Kacem", "Boujdour", "Taroudant", "Tiznit", "Errachidia", "Tinghir", "Zagora"] }
 ];
 
 function ProductCard({ product, onAdd }) {
@@ -147,15 +136,19 @@ function MLSChatbot() {
   const [showAdmin, setShowAdmin] = useState(false);
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [adminCodeInput, setAdminCodeInput] = useState("");
-  const [config, setConfig] = useState({ salesEmail: "commercial@mlslabo.ma", sheetsUrl: "" });
+  const [config, setConfig] = useState({ salesEmail: "commercial@mlslabo.ma", sheetsUrl: "", zones: ZONES_DEFAULT });
   const [recentLeads, setRecentLeads] = useState([]);
+  const [unansweredQuestions, setUnansweredQuestions] = useState([]);
+  const [commercialVille, setCommercialVille] = useState("");
+  const [adminTab, setAdminTab] = useState("general");
   const endRef = useRef(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await storage.get("mls_config");
-        if (res && res.value) setConfig((prev) => ({ ...prev, ...JSON.parse(res.value) }));
+        const res = await fetch(API_BASE_URL + "/api/config");
+        const data = await res.json();
+        if (data) setConfig((prev) => ({ ...prev, ...data }));
       } catch (e) {}
     })();
   }, []);
@@ -177,6 +170,11 @@ function MLSChatbot() {
       action = actionMatch[1];
       text = text.replace(/<ACTION>(devis|contact)<\/ACTION>/, "").trim();
     }
+    let unanswered = false;
+    if (/<UNANSWERED>oui<\/UNANSWERED>/.test(text)) {
+      unanswered = true;
+      text = text.replace(/<UNANSWERED>oui<\/UNANSWERED>/, "").trim();
+    }
     const parts = [];
     const products = [];
     const productRegex = /<PRODUCT>([\s\S]*?)<\/PRODUCT>/g;
@@ -197,7 +195,7 @@ function MLSChatbot() {
     const remaining = text.slice(lastIndex).trim();
     if (remaining) parts.push({ type: "text", content: remaining });
     if (parts.length === 0) parts.push({ type: "text", content: text.trim() });
-    return { parts, products, action };
+    return { parts, products, action, unanswered };
   }
 
   async function sendMessage(text) {
@@ -222,10 +220,19 @@ function MLSChatbot() {
       });
       const data = await res.json();
       const rawText = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
-      const { parts, products, action } = parseResponse(rawText || "Je n'ai pas pu trouver de réponse précise à votre question. Souhaitez-vous être mis en contact avec un commercial ?");
+      const { parts, products, action, unanswered } = parseResponse(rawText || "Je n'ai pas pu trouver de réponse précise à votre question. Souhaitez-vous être mis en contact avec un commercial ?");
       setMessages((prev) => [...prev, { role: "assistant", parts }]);
       if (action === "devis" && products.length > 0) {
         products.forEach((p) => addToCart(p, 1));
+      }
+      if (unanswered) {
+        try {
+          await fetch(API_BASE_URL + "/api/unanswered", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ timestamp: new Date().toISOString(), question: content })
+          });
+        } catch (e) {}
       }
     } catch (e) {
       setMessages((prev) => [...prev, { role: "assistant", parts: [{ type: "text", content: "Désolé, une erreur technique est survenue. Vous pouvez réessayer ou demander directement à être recontacté." }] }]);
@@ -301,9 +308,10 @@ function MLSChatbot() {
   async function openForm(type, fallbackProduct) {
     setFormType(type);
     setFormError("");
+    setShowForm(true);
+    if (type === "contact") return;
     const produit = cart.length > 0 ? produitsSummary() : (fallbackProduct || "");
     setFormData((prev) => ({ ...prev, produit, message: "" }));
-    setShowForm(true);
     const hasUserTurns = messages.some((m) => m.role === "user");
     if (hasUserTurns) {
       setSummarizing(true);
@@ -320,7 +328,13 @@ function MLSChatbot() {
     }
     setFormError("");
     const payload = { timestamp: new Date().toISOString(), type: formType, ...formData };
-    try { await storage.set("lead:" + Date.now(), JSON.stringify(payload)); } catch (e) {}
+    try {
+      await fetch(API_BASE_URL + "/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+    } catch (e) {}
     if (config.sheetsUrl) {
       try {
         await fetch(config.sheetsUrl, {
@@ -351,26 +365,33 @@ function MLSChatbot() {
 
   async function loadLeads() {
     try {
-      const list = await storage.list("lead:");
-      if (list && list.keys) {
-        const recent = list.keys.slice(-20);
-        const items = await Promise.all(
-          recent.map(async (k) => {
-            try {
-              const r = await storage.get(k);
-              return r ? JSON.parse(r.value) : null;
-            } catch (e) {
-              return null;
-            }
-          })
-        );
-        setRecentLeads(items.filter(Boolean).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
-      }
+      const res = await fetch(API_BASE_URL + "/api/leads");
+      const data = await res.json();
+      setRecentLeads((data || []).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
     } catch (e) {}
   }
 
+  async function loadUnanswered() {
+    try {
+      const res = await fetch(API_BASE_URL + "/api/unanswered");
+      const data = await res.json();
+      setUnansweredQuestions((data || []).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+    } catch (e) {}
+  }
+
+  async function deleteUnanswered(id) {
+    try { await fetch(API_BASE_URL + "/api/unanswered/" + id, { method: "DELETE" }); } catch (e) {}
+    setUnansweredQuestions((prev) => prev.filter((q) => q.id !== id));
+  }
+
   async function saveConfig() {
-    try { await storage.set("mls_config", JSON.stringify(config)); } catch (e) {}
+    try {
+      await fetch(API_BASE_URL + "/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config)
+      });
+    } catch (e) {}
     setShowAdmin(false);
   }
 
@@ -378,9 +399,44 @@ function MLSChatbot() {
     if (adminCodeInput === ADMIN_CODE) {
       setAdminUnlocked(true);
       loadLeads();
+      loadUnanswered();
     } else {
       setAdminUnlocked(false);
     }
+  }
+
+  function getZones() {
+    return config.zones && config.zones.length > 0 ? config.zones : ZONES_DEFAULT;
+  }
+
+  function allVilles() {
+    const out = [];
+    getZones().forEach((z) => (z.villes || []).forEach((v) => out.push({ ville: v, zone: z })));
+    return out.sort((a, b) => a.ville.localeCompare(b.ville));
+  }
+
+  function findZoneByVille(ville) {
+    return getZones().find((z) => (z.villes || []).includes(ville)) || null;
+  }
+
+  function updateZoneField(index, field, value) {
+    setConfig((prev) => {
+      const zones = [...getZones()];
+      if (field === "villes") {
+        zones[index] = { ...zones[index], villes: value.split(",").map((v) => v.trim()).filter(Boolean) };
+      } else {
+        zones[index] = { ...zones[index], [field]: value };
+      }
+      return { ...prev, zones };
+    });
+  }
+
+  function addZone() {
+    setConfig((prev) => ({ ...prev, zones: [...getZones(), { zone: "Nouvelle zone", commercial: "", telephone: "", villes: [] }] }));
+  }
+
+  function removeZone(index) {
+    setConfig((prev) => ({ ...prev, zones: getZones().filter((_, i) => i !== index) }));
   }
 
   return (
@@ -440,7 +496,7 @@ function MLSChatbot() {
           <ShoppingCart size={13} /> Panier
           {cartCount() > 0 && <span className="ml-1 bg-white text-green-700 rounded-full px-1.5 text-xs leading-none py-0.5">{cartCount()}</span>}
         </button>
-        <button onClick={() => openForm("contact", "")} className="flex-1 flex items-center justify-center gap-1 text-xs bg-blue-900 text-white rounded px-2 py-1.5 hover:bg-blue-800">
+        <button onClick={() => { setCommercialVille(""); openForm("contact", ""); }} className="flex-1 flex items-center justify-center gap-1 text-xs bg-blue-900 text-white rounded px-2 py-1.5 hover:bg-blue-800">
           <Phone size={13} /> Contact
         </button>
         </div>
@@ -498,11 +554,47 @@ function MLSChatbot() {
         </div>
       )}
 
-      {showForm && (
+      {showForm && formType === "contact" && (
+        <div className="fixed inset-0 bg-slate-900 bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-4 w-full" style={{ maxWidth: "400px" }}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="font-semibold text-slate-800">Trouver mon commercial</div>
+              <button onClick={() => setShowForm(false)}><X size={18} className="text-slate-400" /></button>
+            </div>
+            <div className="text-xs text-slate-500 mb-2">Choisissez votre région/ville pour connaître le commercial qui vous est assigné :</div>
+            <select value={commercialVille} onChange={(e) => setCommercialVille(e.target.value)} className="w-full border border-slate-300 rounded px-3 py-2 text-sm text-slate-700">
+              <option value="">Choisissez votre ville</option>
+              {allVilles().map((v, i) => (
+                <option key={i} value={v.ville}>{v.ville}</option>
+              ))}
+            </select>
+            {commercialVille && (() => {
+              const zone = findZoneByVille(commercialVille);
+              if (!zone) {
+                return <div className="mt-3 text-sm text-slate-600">Aucun commercial n'est encore assigné à cette ville.</div>;
+              }
+              return (
+                <div className="mt-3 border border-slate-200 rounded p-3 bg-slate-50">
+                  <div className="text-sm font-medium text-slate-800">{zone.commercial || "Commercial à venir"}</div>
+                  <div className="text-sm text-slate-600 mt-0.5">
+                    {zone.telephone ? (
+                      <a href={"tel:" + zone.telephone} className="text-blue-900 hover:underline">{zone.telephone}</a>
+                    ) : (
+                      "Numéro à venir."
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {showForm && formType === "devis" && (
         <div className="fixed inset-0 bg-slate-900 bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-4 w-full overflow-y-auto" style={{ maxWidth: "400px", maxHeight: "85vh" }}>
             <div className="flex items-center justify-between mb-3">
-              <div className="font-semibold text-slate-800">{formType === "devis" ? "Demande de devis" : "Être recontacté"}</div>
+              <div className="font-semibold text-slate-800">Demande de devis</div>
               <button onClick={() => setShowForm(false)}><X size={18} className="text-slate-400" /></button>
             </div>
             <div className="space-y-2">
@@ -512,9 +604,9 @@ function MLSChatbot() {
               <input type="email" placeholder="Email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
               <div className="text-xs text-slate-400">Téléphone ou email requis (au moins un des deux)</div>
               <select value={formData.region} onChange={(e) => setFormData({ ...formData, region: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm text-slate-700">
-                <option value="">Région de l'entreprise *</option>
-                {REGIONS.map((r) => (
-                  <option key={r} value={r}>{r}</option>
+                <option value="">Votre ville *</option>
+                {allVilles().map((v, i) => (
+                  <option key={i} value={v.ville}>{v.ville}</option>
                 ))}
               </select>
               <textarea placeholder="Produit(s) concerné(s)" value={formData.produit} onChange={(e) => setFormData({ ...formData, produit: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" rows={3} />
@@ -541,18 +633,59 @@ function MLSChatbot() {
               </div>
             ) : (
               <div className="space-y-3">
-                <div>
-                  <div className="text-xs font-medium text-slate-600 mb-1">Email commercial (pour le bouton mailto)</div>
-                  <input value={config.salesEmail} onChange={(e) => setConfig({ ...config, salesEmail: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+                <div className="flex border-b border-slate-200">
+                  {[
+                    { key: "general", label: "Général" },
+                    { key: "zones", label: "Zones" },
+                    { key: "demandes", label: "Demandes" },
+                    { key: "questions", label: "Questions" }
+                  ].map((t) => (
+                    <button
+                      key={t.key}
+                      onClick={() => setAdminTab(t.key)}
+                      className={"flex-1 text-xs py-2 border-b-2 " + (adminTab === t.key ? "border-blue-900 text-blue-900 font-medium" : "border-transparent text-slate-500")}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
                 </div>
-                <div>
-                  <div className="text-xs font-medium text-slate-600 mb-1">URL Google Apps Script (optionnel, journalisation auto. vers Google Sheets)</div>
-                  <input value={config.sheetsUrl} onChange={(e) => setConfig({ ...config, sheetsUrl: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" placeholder="https://script.google.com/macros/s/.../exec" />
-                </div>
-                <button onClick={saveConfig} className="w-full bg-blue-900 text-white rounded px-3 py-2 text-sm hover:bg-blue-800">Enregistrer</button>
-                <div className="border-t border-slate-200 pt-3">
-                  <div className="text-xs font-medium text-slate-600 mb-2">Demandes récentes (sauvegarde de secours, {recentLeads.length})</div>
-                  <div className="space-y-1 max-h-40 overflow-y-auto">
+
+                {adminTab === "general" && (
+                  <div className="space-y-3">
+                    <div>
+                      <div className="text-xs font-medium text-slate-600 mb-1">Email commercial (pour le bouton mailto)</div>
+                      <input value={config.salesEmail} onChange={(e) => setConfig({ ...config, salesEmail: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-medium text-slate-600 mb-1">URL Google Apps Script (optionnel, journalisation auto. vers Google Sheets)</div>
+                      <input value={config.sheetsUrl} onChange={(e) => setConfig({ ...config, sheetsUrl: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" placeholder="https://script.google.com/macros/s/.../exec" />
+                    </div>
+                    <button onClick={saveConfig} className="w-full bg-blue-900 text-white rounded px-3 py-2 text-sm hover:bg-blue-800">Enregistrer</button>
+                  </div>
+                )}
+
+                {adminTab === "zones" && (
+                  <div className="space-y-3">
+                    <div className="space-y-2 max-h-72 overflow-y-auto">
+                      {getZones().map((z, i) => (
+                        <div key={i} className="border border-slate-200 rounded p-2 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <input value={z.zone} onChange={(e) => updateZoneField(i, "zone", e.target.value)} className="flex-1 border border-slate-300 rounded px-2 py-1 text-xs" placeholder="Nom de la zone" />
+                            <button onClick={() => removeZone(i)} className="text-slate-400 hover:text-red-500"><X size={14} /></button>
+                          </div>
+                          <input value={z.commercial} onChange={(e) => updateZoneField(i, "commercial", e.target.value)} className="w-full border border-slate-300 rounded px-2 py-1 text-xs" placeholder="Prénom du commercial" />
+                          <input value={z.telephone} onChange={(e) => updateZoneField(i, "telephone", e.target.value)} className="w-full border border-slate-300 rounded px-2 py-1 text-xs" placeholder="Numéro de téléphone" />
+                          <textarea value={(z.villes || []).join(", ")} onChange={(e) => updateZoneField(i, "villes", e.target.value)} className="w-full border border-slate-300 rounded px-2 py-1 text-xs" rows={2} placeholder="Villes séparées par des virgules" />
+                        </div>
+                      ))}
+                    </div>
+                    <button onClick={addZone} className="w-full border border-dashed border-slate-300 text-slate-600 rounded px-3 py-1.5 text-xs hover:bg-slate-50">+ Ajouter une zone</button>
+                    <button onClick={saveConfig} className="w-full bg-blue-900 text-white rounded px-3 py-2 text-sm hover:bg-blue-800">Enregistrer</button>
+                  </div>
+                )}
+
+                {adminTab === "demandes" && (
+                  <div className="space-y-1 max-h-72 overflow-y-auto">
                     {recentLeads.length === 0 && <div className="text-xs text-slate-400">Aucune demande enregistrée pour le moment.</div>}
                     {recentLeads.map((l, i) => (
                       <div key={i} className="text-xs border border-slate-100 rounded p-2 bg-slate-50">
@@ -563,7 +696,22 @@ function MLSChatbot() {
                       </div>
                     ))}
                   </div>
-                </div>
+                )}
+
+                {adminTab === "questions" && (
+                  <div className="space-y-1 max-h-72 overflow-y-auto">
+                    {unansweredQuestions.length === 0 && <div className="text-xs text-slate-400">Aucune question en attente pour le moment.</div>}
+                    {unansweredQuestions.map((q) => (
+                      <div key={q.id} className="text-xs border border-slate-100 rounded p-2 bg-slate-50 flex items-start justify-between gap-2">
+                        <div>
+                          <div className="text-slate-700 whitespace-pre-wrap">{q.question}</div>
+                          <div className="text-slate-400 mt-0.5">{new Date(q.timestamp).toLocaleString("fr-FR")}</div>
+                        </div>
+                        <button onClick={() => deleteUnanswered(q.id)} className="text-slate-400 hover:text-red-500 shrink-0"><X size={14} /></button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
