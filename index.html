@@ -345,20 +345,8 @@ function MLSChatbot() {
         });
       } catch (e) {}
     }
-    const subject = encodeURIComponent("Nouvelle demande " + (formType === "devis" ? "de devis" : "de contact") + " - " + formData.societe);
-    const body = encodeURIComponent(
-      "Nom du contact : " + formData.nom + "\n" +
-      "Entreprise : " + formData.societe + "\n" +
-      "Téléphone : " + formData.telephone + "\n" +
-      "Email : " + formData.email + "\n" +
-      "Région : " + formData.region + "\n" +
-      "Produit(s) concerné(s) :\n" + formData.produit + "\n\n" +
-      "Résumé de la discussion : " + formData.message
-    );
-    const mailto = "mailto:" + (config.salesEmail || "commercial@mlslabo.ma") + "?subject=" + subject + "&body=" + body;
-    window.open(mailto, "_blank");
     setShowForm(false);
-    setMessages((prev) => [...prev, { role: "assistant", parts: [{ type: "text", content: "Merci " + formData.nom + ", votre demande a bien été préparée. Une fenêtre de messagerie vient de s'ouvrir pour l'envoyer à notre équipe commerciale" + (config.sheetsUrl ? " (une copie a également été enregistrée automatiquement)" : "") + ". Nous reviendrons vers vous très rapidement." }] }]);
+    setMessages((prev) => [...prev, { role: "assistant", parts: [{ type: "text", content: "Merci " + formData.nom + ", votre demande a bien été transmise à notre équipe commerciale" + (config.sheetsUrl ? " (une copie a également été enregistrée automatiquement)" : "") + ". Nous reviendrons vers vous très rapidement." }] }]);
     setFormData({ nom: "", societe: "", telephone: "", email: "", region: "", produit: "", message: "" });
     setCart([]);
   }

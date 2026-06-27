@@ -9,12 +9,47 @@ app.use(cors());
 app.use(express.json());
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const PORT = process.env.PORT || 3001;
 const DB_FILE = path.join(__dirname, "data.json");
 
 if (!ANTHROPIC_API_KEY) {
   console.error("ERREUR: la variable d'environnement ANTHROPIC_API_KEY n'est pas definie.");
   process.exit(1);
+}
+
+if (!RESEND_API_KEY) {
+  console.warn("ATTENTION: RESEND_API_KEY n'est pas definie, l'envoi d'email des demandes sera desactive.");
+}
+
+async function sendLeadEmail(lead, salesEmail) {
+  if (!RESEND_API_KEY) return;
+  const subject = "Nouvelle demande " + (lead.type === "devis" ? "de devis" : "de contact") + " - " + lead.societe;
+  const html =
+    "<p><strong>Nom du contact :</strong> " + lead.nom + "</p>" +
+    "<p><strong>Entreprise :</strong> " + lead.societe + "</p>" +
+    "<p><strong>Téléphone :</strong> " + (lead.telephone || "-") + "</p>" +
+    "<p><strong>Email :</strong> " + (lead.email || "-") + "</p>" +
+    "<p><strong>Ville/Région :</strong> " + (lead.region || "-") + "</p>" +
+    "<p><strong>Produit(s) concerné(s) :</strong><br>" + (lead.produit || "-").replace(/\n/g, "<br>") + "</p>" +
+    "<p><strong>Résumé de la discussion :</strong><br>" + (lead.message || "-").replace(/\n/g, "<br>") + "</p>";
+  try {
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + RESEND_API_KEY
+      },
+      body: JSON.stringify({
+        from: "MLS Chatbot <onboarding@resend.dev>",
+        to: [salesEmail || "commercial@mlslabo.ma"],
+        subject,
+        html
+      })
+    });
+  } catch (err) {
+    console.error("Erreur envoi email Resend:", err);
+  }
 }
 
 const ZONES_DEFAULT = [
@@ -71,12 +106,13 @@ app.get("/api/leads", (req, res) => {
   res.json(loadDb().leads);
 });
 
-app.post("/api/leads", (req, res) => {
+app.post("/api/leads", async (req, res) => {
   const db = loadDb();
   const lead = { id: Date.now() + "-" + Math.random().toString(36).slice(2), ...req.body };
   db.leads.push(lead);
   saveDb(db);
   res.json(lead);
+  sendLeadEmail(lead, db.config.salesEmail);
 });
 
 app.get("/api/unanswered", (req, res) => {
