@@ -22,17 +22,49 @@ if (!RESEND_API_KEY) {
   console.warn("ATTENTION: RESEND_API_KEY n'est pas definie, l'envoi d'email des demandes sera desactive.");
 }
 
+function escapeHtml(str) {
+  return String(str || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function buildProductsTable(cartItems) {
+  if (!Array.isArray(cartItems) || cartItems.length === 0) return "";
+  const rows = cartItems
+    .map(
+      (item) =>
+        "<tr>" +
+        "<td style=\"padding:6px 10px;border:1px solid #e2e8f0;\">" + escapeHtml(item.name) + "</td>" +
+        "<td style=\"padding:6px 10px;border:1px solid #e2e8f0;\">" + (item.url ? "<a href=\"" + escapeHtml(item.url) + "\">Voir la page</a>" : "-") + "</td>" +
+        "<td style=\"padding:6px 10px;border:1px solid #e2e8f0;\">" + escapeHtml(item.ref || "-") + "</td>" +
+        "<td style=\"padding:6px 10px;border:1px solid #e2e8f0;text-align:center;\">" + escapeHtml(item.quantity) + "</td>" +
+        "</tr>"
+    )
+    .join("");
+  return (
+    "<table style=\"border-collapse:collapse;margin-top:6px;font-size:13px;\">" +
+    "<tr style=\"background:#f1f5f9;\">" +
+    "<th style=\"padding:6px 10px;border:1px solid #e2e8f0;text-align:left;\">Nom du produit</th>" +
+    "<th style=\"padding:6px 10px;border:1px solid #e2e8f0;text-align:left;\">Lien</th>" +
+    "<th style=\"padding:6px 10px;border:1px solid #e2e8f0;text-align:left;\">Réf.</th>" +
+    "<th style=\"padding:6px 10px;border:1px solid #e2e8f0;text-align:left;\">Quantité</th>" +
+    "</tr>" +
+    rows +
+    "</table>"
+  );
+}
+
 async function sendLeadEmail(lead, salesEmail) {
   if (!RESEND_API_KEY) return;
   const subject = "Nouvelle demande " + (lead.type === "devis" ? "de devis" : "de contact") + " - " + lead.societe;
+  const productsTable = buildProductsTable(lead.cartItems);
   const html =
-    "<p><strong>Nom du contact :</strong> " + lead.nom + "</p>" +
-    "<p><strong>Entreprise :</strong> " + lead.societe + "</p>" +
-    "<p><strong>Téléphone :</strong> " + (lead.telephone || "-") + "</p>" +
-    "<p><strong>Email :</strong> " + (lead.email || "-") + "</p>" +
-    "<p><strong>Ville/Région :</strong> " + (lead.region || "-") + "</p>" +
-    "<p><strong>Produit(s) concerné(s) :</strong><br>" + (lead.produit || "-").replace(/\n/g, "<br>") + "</p>" +
-    "<p><strong>Résumé de la discussion :</strong><br>" + (lead.message || "-").replace(/\n/g, "<br>") + "</p>";
+    "<p><strong>Nom du contact :</strong> " + escapeHtml(lead.nom) + "</p>" +
+    "<p><strong>Entreprise :</strong> " + escapeHtml(lead.societe) + "</p>" +
+    "<p><strong>Téléphone :</strong> " + escapeHtml(lead.telephone || "-") + "</p>" +
+    "<p><strong>Email :</strong> " + escapeHtml(lead.email || "-") + "</p>" +
+    "<p><strong>Ville/Région :</strong> " + escapeHtml(lead.region || "-") + "</p>" +
+    "<p><strong>Produit(s) concerné(s) :</strong></p>" +
+    (productsTable || "<p>" + escapeHtml(lead.produit || "-").replace(/\n/g, "<br>") + "</p>") +
+    "<p style=\"margin-top:12px;\"><strong>Résumé de la discussion :</strong><br>" + escapeHtml(lead.message || "-").replace(/\n/g, "<br>") + "</p>";
   try {
     await fetch("https://api.resend.com/emails", {
       method: "POST",

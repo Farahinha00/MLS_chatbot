@@ -73,8 +73,11 @@ Règles strictes :
 - Utilisez l'outil de recherche web pour obtenir des informations à jour, en vous limitant exclusivement au site mlslabo.ma (incluez "site:mlslabo.ma" dans vos recherches autant que possible). N'utilisez aucune autre source pour parler des produits MLS.
 - Pour toute question géographique (livraison, délais, couverture par ville), utilisez la liste des zones ci-dessus pour rattacher la ville mentionnée à sa zone/région, puis appuyez-vous sur les informations de livraison trouvées sur mlslabo.ma pour cette région (par exemple, si le site indique une livraison à Rabat et Casablanca sous X jours et "reste du Maroc" sous Y jours, une ville d'une autre zone suit la règle "reste du Maroc"). Ne répondez jamais "je ne sais pas" à une question de livraison pour une ville marocaine sans avoir fait ce rapprochement géographique.
 - Ne donnez jamais de prix précis : les tarifs ne sont pas publics. Orientez systématiquement vers une demande de devis pour obtenir un prix.
-- Pour CHAQUE produit que vous présentez ou recommandez, même dans une liste de plusieurs produits, insérez le bloc structuré suivant juste après la ou les phrases qui en parlent (pas regroupés à la fin du message), avec ces clés uniquement (n'omettez aucun produit cité) :
-<PRODUCT>{"name":"nom du produit","description":"description en 1-2 phrases, texte brut sans markdown","url":"lien exact vers la page produit mlslabo.ma"}</PRODUCT>
+- Avant de proposer des produits, évaluez si la demande est suffisamment précise. Si la demande est vague ou trop large (ex : une marque entière, une catégorie complète, plusieurs types d'appareils différents possibles), ne listez PAS automatiquement des produits au hasard : posez une ou deux questions courtes et concrètes pour cerner le besoin exact (usage prévu, type de structure, gamme/budget visé, caractéristique recherchée), puis attendez la réponse avant de proposer des produits.
+- Ne présentez jamais plus de 3 produits dans une même réponse. Si plus de 3 produits semblent pertinents, sélectionnez les 3 plus adaptés selon le contexte et, si besoin, posez une question pour affiner plutôt que d'en lister davantage.
+- Gardez vos réponses lisibles : résumez l'essentiel en quelques phrases courtes plutôt que de tout détailler, et structurez par des phrases simples plutôt que des paragraphes denses.
+- Pour CHAQUE produit que vous présentez ou recommandez (maximum 3, voir règle ci-dessus), même dans une liste de plusieurs produits, insérez le bloc structuré suivant juste après la ou les phrases qui en parlent (pas regroupés à la fin du message), avec ces clés uniquement (n'omettez aucun produit cité) :
+<PRODUCT>{"name":"nom du produit","ref":"référence exacte du produit telle qu'indiquée sur la page mlslabo.ma (laissez vide si introuvable)","description":"description en 1-2 phrases, texte brut sans markdown","url":"lien exact vers la page produit mlslabo.ma"}</PRODUCT>
 - La description de chaque produit doit être courte (1 phrase, 20 mots maximum). Si la description trouvée sur le site est plus longue, résumez-la vous-même en gardant l'information essentielle (nature du produit, usage principal), sans la recopier intégralement.
 - Si l'utilisateur exprime une intention claire de demande de devis (prix, devis, commande, quantité, achat), terminez votre réponse par <ACTION>devis</ACTION>
 - Si l'utilisateur souhaite simplement être recontacté ou a une question nécessitant un commercial, terminez par <ACTION>contact</ACTION>
@@ -98,6 +101,7 @@ function ProductCard({ product, onAdd }) {
       <a href={product.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm font-medium text-blue-900 hover:underline">
         <ExternalLink size={13} /> {product.name}
       </a>
+      {product.ref && <div className="text-xs text-slate-400">Réf. {product.ref}</div>}
       {product.description && <div className="text-xs text-slate-600 mt-1">{product.description}</div>}
       <div className="flex items-center gap-2 mt-2">
         <input
@@ -250,7 +254,7 @@ function MLSChatbot() {
         copy[idx] = { ...copy[idx], quantity: copy[idx].quantity + qty };
         return copy;
       }
-      return [...prev, { name: product.name, url: product.url || "", quantity: qty }];
+      return [...prev, { name: product.name, url: product.url || "", ref: product.ref || "", quantity: qty }];
     });
     setToast("Ajouté au panier : " + product.name + " (x" + qty + ")");
   }
@@ -281,7 +285,7 @@ function MLSChatbot() {
   }
 
   function produitsSummary() {
-    return cart.map((i) => i.name + " (x" + i.quantity + ")" + (i.url ? " - " + i.url : "")).join("\n");
+    return cart.map((i) => i.name + (i.ref ? " (Réf. " + i.ref + ")" : "") + " (x" + i.quantity + ")" + (i.url ? " - " + i.url : "")).join("\n");
   }
 
   async function generateSummary() {
@@ -327,7 +331,7 @@ function MLSChatbot() {
       return;
     }
     setFormError("");
-    const payload = { timestamp: new Date().toISOString(), type: formType, ...formData };
+    const payload = { timestamp: new Date().toISOString(), type: formType, ...formData, cartItems: cart };
     try {
       await fetch(API_BASE_URL + "/api/leads", {
         method: "POST",
@@ -522,6 +526,7 @@ function MLSChatbot() {
                       ) : (
                         <div className="text-sm font-medium text-slate-800">{item.name}</div>
                       )}
+                      {item.ref && <div className="text-xs text-slate-400">Réf. {item.ref}</div>}
                       <div className="flex items-center gap-2 mt-1">
                         <button onClick={() => updateQty(i, -1)} className="w-6 h-6 border border-slate-300 rounded text-slate-600">-</button>
                         <input type="number" min="1" value={item.quantity} onChange={(e) => setQty(i, e.target.value)} className="w-12 border border-slate-300 rounded text-xs text-center py-1" />
