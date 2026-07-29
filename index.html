@@ -103,9 +103,6 @@ function ProductCard({ product, onAdd }) {
   const [qty, setQty] = useState(1);
   return (
     <div style={{ borderRadius: 14, border: "1px solid #E4E7EC", background: "#fff", overflow: "hidden", marginTop: 8, marginBottom: 4 }}>
-      <div className="product-img" style={{ height: 80, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <span style={{ fontSize: 11, color: "#8B96A8", fontWeight: 500, letterSpacing: 0.3 }}>Photo produit</span>
-      </div>
       <div style={{ padding: "10px 12px 12px" }}>
         {product.category && (
           <div style={{ fontSize: 10, fontWeight: 700, color: "#2E9E45", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 3 }}>
