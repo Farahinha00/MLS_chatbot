@@ -4,26 +4,38 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Medical Laboratoire Service — Assistant commercial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
   html, body, #root { height: 100%; margin: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
-  .animate-bounce { animation: bounce 1.2s infinite ease-in-out; }
+  body { font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #F6F7FA; }
+  @keyframes dotBounce { 0%, 80%, 100% { transform: scale(0); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
+  .dot-bounce { animation: dotBounce 1.4s infinite ease-in-out; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .animate-spin { animation: spin 1s linear infinite; }
+  .spin { animation: spin 1s linear infinite; }
+  .product-img {
+    background-color: #F6F7FA;
+    background-image: repeating-linear-gradient(-45deg, #E4E7EC 0, #E4E7EC 1px, transparent 0, transparent 50%);
+    background-size: 10px 10px;
+  }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #E4E7EC; border-radius: 4px; }
+  input, textarea, select { font-family: 'Plus Jakarta Sans', sans-serif; }
+  button { font-family: 'Plus Jakarta Sans', sans-serif; }
 </style>
 </head>
-<body class="bg-slate-100">
+<body>
 <div id="root"></div>
 
 <script type="text/plain" id="app-source">
 const { useState, useEffect, useRef } = React;
 
-/* ---------- Icones SVG (remplacent lucide-react) ---------- */
+/* ---------- Icones SVG ---------- */
 function Icon({ children, size = 16, className = "" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -35,22 +47,13 @@ function Icon({ children, size = 16, className = "" }) {
 const Send = (p) => <Icon {...p}><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></Icon>;
 const Settings = (p) => <Icon {...p}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></Icon>;
 const X = (p) => <Icon {...p}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></Icon>;
-const Loader2 = (p) => <Icon {...p} className={(p.className || "") + " animate-spin"}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></Icon>;
+const Loader2 = (p) => <Icon {...p} className={(p.className || "") + " spin"}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></Icon>;
 const ExternalLink = (p) => <Icon {...p}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></Icon>;
 const Phone = (p) => <Icon {...p}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></Icon>;
 const ShoppingCart = (p) => <Icon {...p}><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" /></Icon>;
+const MoreHoriz = (p) => <Icon {...p}><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></Icon>;
 
-/* ====================================================================
-   IMPORTANT — Appel API Claude
-   L'environnement final n'a pas de backend : l'appel direct à
-   https://api.anthropic.com depuis le navigateur est bloqué par CORS et
-   exposerait une clé API si on en ajoutait une.
-   Remplacez ANTHROPIC_PROXY_URL par l'URL de votre propre backend/proxy
-   qui détient la clé API et relaie la requête à Anthropic.
-   ==================================================================== */
 const API_BASE_URL = "https://mls-chatbot-2g4f.onrender.com";
-// Une fois le serveur proxy déployé en ligne (Render, Railway, etc.),
-// remplacez cette URL par l'URL publique de votre backend.
 const ANTHROPIC_PROXY_URL = API_BASE_URL + "/api/chat";
 
 const SYSTEM_PROMPT = `Vous êtes l'assistant commercial virtuel de Medical Laboratoire Service (MLS), distributeur marocain de dispositifs médicaux (plus de 3000 références, site https://www.mlslabo.ma/).
@@ -77,11 +80,12 @@ Règles strictes :
 - Ne présentez jamais plus de 3 produits dans une même réponse. Si plus de 3 produits semblent pertinents, sélectionnez les 3 plus adaptés selon le contexte et, si besoin, posez une question pour affiner plutôt que d'en lister davantage.
 - Gardez vos réponses lisibles : résumez l'essentiel en quelques phrases courtes plutôt que de tout détailler, et structurez par des phrases simples plutôt que des paragraphes denses.
 - Pour CHAQUE produit que vous présentez ou recommandez (maximum 3, voir règle ci-dessus), même dans une liste de plusieurs produits, insérez le bloc structuré suivant juste après la ou les phrases qui en parlent (pas regroupés à la fin du message), avec ces clés uniquement (n'omettez aucun produit cité) :
-<PRODUCT>{"name":"nom du produit","ref":"référence exacte du produit telle qu'indiquée sur la page mlslabo.ma (laissez vide si introuvable)","description":"description en 1-2 phrases, texte brut sans markdown","url":"lien exact vers la page produit mlslabo.ma"}</PRODUCT>
+<PRODUCT>{"name":"nom du produit","ref":"référence exacte du produit telle qu'indiquée sur la page mlslabo.ma (laissez vide si introuvable)","description":"description en 1 phrase, 20 mots maximum","url":"lien exact vers la page produit mlslabo.ma","category":"catégorie en MAJUSCULES (ex: ORTHOPÉDIE, DIAGNOSTIC, INSTRUMENTATION)"}</PRODUCT>
 - La description de chaque produit doit être courte (1 phrase, 20 mots maximum). Si la description trouvée sur le site est plus longue, résumez-la vous-même en gardant l'information essentielle (nature du produit, usage principal), sans la recopier intégralement.
 - Si l'utilisateur exprime une intention claire de demande de devis (prix, devis, commande, quantité, achat), terminez votre réponse par <ACTION>devis</ACTION>
 - Si l'utilisateur souhaite simplement être recontacté ou a une question nécessitant un commercial, terminez par <ACTION>contact</ACTION>
 - Si, après avoir effectivement cherché sur mlslabo.ma et appliqué le rapprochement géographique le cas échéant, vous ne trouvez vraiment pas l'information demandée, dites-le honnêtement plutôt que d'inventer, proposez une mise en contact avec un commercial, et terminez votre réponse par <UNANSWERED>oui</UNANSWERED>
+- À la fin de certaines réponses (pas toutes), si cela aide naturellement l'utilisateur à aller plus loin, proposez 2 à 3 suggestions d'actions courtes sous forme de puces cliquables, en insérant exactement : <SUGGESTIONS>["Suggestion 1","Suggestion 2"]</SUGGESTIONS>. Exemples : "Voir d'autres modèles", "Demander un devis", "Parler à un commercial", "Délais de livraison ?", "Produits similaires", "Caractéristiques techniques". N'ajoutez PAS de suggestions si la réponse se termine déjà par une question directe.
 - Restez concis.`;
 
 const ADMIN_CODE = "MLS2026";
@@ -94,26 +98,44 @@ const ZONES_DEFAULT = [
   { zone: "ZONE 5", commercial: "Ibtissam", telephone: "", villes: ["Chtouka Aït Baha", "Bouarfa", "Tan-Tan", "Kelaat Sraghna", "Essaouira", "El Jadida", "Berrechid", "El Youssoufia", "Had Soualem", "Azrou", "Séfrou", "Sidi Kacem", "Boujdour", "Taroudant", "Tiznit", "Errachidia", "Tinghir", "Zagora"] }
 ];
 
+/* ---------- Carte produit redesignée ---------- */
 function ProductCard({ product, onAdd }) {
   const [qty, setQty] = useState(1);
   return (
-    <div className="my-2 border border-slate-200 rounded-md p-2 bg-slate-50">
-      <a href={product.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm font-medium text-blue-900 hover:underline">
-        <ExternalLink size={13} /> {product.name}
-      </a>
-      {product.ref && <div className="text-xs text-slate-400">Réf. {product.ref}</div>}
-      {product.description && <div className="text-xs text-slate-600 mt-1">{product.description}</div>}
-      <div className="flex items-center gap-2 mt-2">
-        <input
-          type="number"
-          min="1"
-          value={qty}
-          onChange={(e) => setQty(Math.max(1, parseInt(e.target.value, 10) || 1))}
-          className="w-14 border border-slate-300 rounded text-xs text-center py-1"
-        />
-        <button onClick={() => onAdd(product, qty)} className="flex items-center gap-1 text-xs text-white bg-green-600 rounded px-2 py-1 hover:bg-green-700">
-          <ShoppingCart size={12} /> Ajouter au panier
-        </button>
+    <div style={{ borderRadius: 14, border: "1px solid #E4E7EC", background: "#fff", overflow: "hidden", marginTop: 8, marginBottom: 4 }}>
+      <div className="product-img" style={{ height: 80, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ fontSize: 11, color: "#8B96A8", fontWeight: 500, letterSpacing: 0.3 }}>Photo produit</span>
+      </div>
+      <div style={{ padding: "10px 12px 12px" }}>
+        {product.category && (
+          <div style={{ fontSize: 10, fontWeight: 700, color: "#2E9E45", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 3 }}>
+            {product.category}
+          </div>
+        )}
+        <a href={product.url} target="_blank" rel="noopener noreferrer"
+          style={{ fontSize: 13, fontWeight: 700, color: "#1E2A56", textDecoration: "none", lineHeight: 1.3, display: "block" }}
+          onMouseEnter={e => e.target.style.textDecoration = "underline"}
+          onMouseLeave={e => e.target.style.textDecoration = "none"}>
+          {product.name}
+        </a>
+        {product.ref && (
+          <div style={{ fontSize: 11, color: "#8B96A8", fontWeight: 500, marginTop: 2 }}>Réf. {product.ref}</div>
+        )}
+        {product.description && (
+          <div style={{ fontSize: 12, color: "#6B7280", marginTop: 5, lineHeight: 1.45 }}>{product.description}</div>
+        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10 }}>
+          <input
+            type="number" min="1" value={qty}
+            onChange={(e) => setQty(Math.max(1, parseInt(e.target.value, 10) || 1))}
+            style={{ width: 44, border: "1px solid #E4E7EC", borderRadius: 8, fontSize: 12, textAlign: "center", padding: "4px 0", outline: "none", color: "#2B3040" }}
+          />
+          <button
+            onClick={() => onAdd(product, qty)}
+            style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, fontSize: 12, fontWeight: 600, color: "#fff", background: "#2E9E45", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", fontFamily: "inherit" }}>
+            <ShoppingCart size={12} /> Ajouter au panier
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -125,7 +147,11 @@ function partsToText(parts) {
 
 function MLSChatbot() {
   const [messages, setMessages] = useState([
-    { role: "assistant", parts: [{ type: "text", content: "Bonjour et bienvenue chez Medical Laboratoire Service. Je suis l'assistant virtuel de MLS, à votre disposition pour vous renseigner sur nos produits (diagnostic, orthopédie, équipement médico-hospitalier, aide à la marche, et bien plus) et pour vous mettre en relation avec notre équipe commerciale. Comment puis-je vous aider aujourd'hui ?" }] }
+    {
+      role: "assistant",
+      parts: [{ type: "text", content: "Bonjour et bienvenue chez Medical Laboratoire Service. Je suis votre assistant commercial, à disposition pour vous renseigner sur nos produits (diagnostic, orthopédie, équipement médico-hospitalier, aide à la marche, et bien plus) et vous mettre en relation avec notre équipe. Comment puis-je vous aider ?" }],
+      suggestions: ["Voir nos produits", "Demander un devis", "Trouver mon commercial"]
+    }
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -163,7 +189,7 @@ function MLSChatbot() {
 
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(""), 2000);
+    const t = setTimeout(() => setToast(""), 2500);
     return () => clearTimeout(t);
   }, [toast]);
 
@@ -178,6 +204,12 @@ function MLSChatbot() {
     if (/<UNANSWERED>oui<\/UNANSWERED>/.test(text)) {
       unanswered = true;
       text = text.replace(/<UNANSWERED>oui<\/UNANSWERED>/, "").trim();
+    }
+    let suggestions = [];
+    const suggestionsMatch = text.match(/<SUGGESTIONS>(\[[\s\S]*?\])<\/SUGGESTIONS>/);
+    if (suggestionsMatch) {
+      try { suggestions = JSON.parse(suggestionsMatch[1]); } catch (e) {}
+      text = text.replace(/<SUGGESTIONS>(\[[\s\S]*?\])<\/SUGGESTIONS>/, "").trim();
     }
     const parts = [];
     const products = [];
@@ -199,11 +231,11 @@ function MLSChatbot() {
     const remaining = text.slice(lastIndex).trim();
     if (remaining) parts.push({ type: "text", content: remaining });
     if (parts.length === 0) parts.push({ type: "text", content: text.trim() });
-    return { parts, products, action, unanswered };
+    return { parts, products, action, unanswered, suggestions };
   }
 
   async function sendMessage(text) {
-    const content = text.trim();
+    const content = typeof text === "string" ? text.trim() : input.trim();
     if (!content || loading) return;
     const newMessages = [...messages, { role: "user", parts: [{ type: "text", content }] }];
     setMessages(newMessages);
@@ -224,8 +256,8 @@ function MLSChatbot() {
       });
       const data = await res.json();
       const rawText = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
-      const { parts, products, action, unanswered } = parseResponse(rawText || "Je n'ai pas pu trouver de réponse précise à votre question. Souhaitez-vous être mis en contact avec un commercial ?");
-      setMessages((prev) => [...prev, { role: "assistant", parts }]);
+      const { parts, products, action, unanswered, suggestions } = parseResponse(rawText || "Je n'ai pas pu trouver de réponse précise. Souhaitez-vous être mis en contact avec un commercial ?");
+      setMessages((prev) => [...prev, { role: "assistant", parts, suggestions }]);
       if (action === "devis" && products.length > 0) {
         products.forEach((p) => addToCart(p, 1));
       }
@@ -239,7 +271,7 @@ function MLSChatbot() {
         } catch (e) {}
       }
     } catch (e) {
-      setMessages((prev) => [...prev, { role: "assistant", parts: [{ type: "text", content: "Désolé, une erreur technique est survenue. Vous pouvez réessayer ou demander directement à être recontacté." }] }]);
+      setMessages((prev) => [...prev, { role: "assistant", parts: [{ type: "text", content: "Désolé, une erreur technique est survenue. Vous pouvez réessayer ou demander directement à être recontacté." }], suggestions: [] }]);
     } finally {
       setLoading(false);
     }
@@ -256,7 +288,7 @@ function MLSChatbot() {
       }
       return [...prev, { name: product.name, url: product.url || "", ref: product.ref || "", quantity: qty }];
     });
-    setToast("Ajouté au panier : " + product.name + " (x" + qty + ")");
+    setToast("Ajouté : " + product.name + " (x" + qty + ")");
   }
 
   function updateQty(index, delta) {
@@ -267,7 +299,7 @@ function MLSChatbot() {
     });
   }
 
-  function setQty(index, value) {
+  function setQtyDirect(index, value) {
     const n = Math.max(1, parseInt(value, 10) || 1);
     setCart((prev) => {
       const copy = [...prev];
@@ -327,7 +359,7 @@ function MLSChatbot() {
 
   async function handleSubmitForm() {
     if (!formData.nom || !formData.societe || !formData.region || (!formData.telephone && !formData.email)) {
-      setFormError("Merci de renseigner votre nom, le nom de l'entreprise, la région, et au moins un moyen de contact (téléphone ou email).");
+      setFormError("Merci de renseigner votre nom, le nom de l'entreprise, la région, et au moins un moyen de contact.");
       return;
     }
     setFormError("");
@@ -341,16 +373,15 @@ function MLSChatbot() {
     } catch (e) {}
     if (config.sheetsUrl) {
       try {
-        await fetch(config.sheetsUrl, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify(payload)
-        });
+        await fetch(config.sheetsUrl, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(payload) });
       } catch (e) {}
     }
     setShowForm(false);
-    setMessages((prev) => [...prev, { role: "assistant", parts: [{ type: "text", content: "Merci " + formData.nom + ", votre demande a bien été transmise à notre équipe commerciale" + (config.sheetsUrl ? " (une copie a également été enregistrée automatiquement)" : "") + ". Nous reviendrons vers vous très rapidement." }] }]);
+    setMessages((prev) => [...prev, {
+      role: "assistant",
+      parts: [{ type: "text", content: "Merci " + formData.nom + ", votre demande a bien été transmise à notre équipe commerciale. Nous reviendrons vers vous très rapidement." }],
+      suggestions: []
+    }]);
     setFormData({ nom: "", societe: "", telephone: "", email: "", region: "", produit: "", message: "" });
     setCart([]);
   }
@@ -431,151 +462,236 @@ function MLSChatbot() {
     setConfig((prev) => ({ ...prev, zones: getZones().filter((_, i) => i !== index) }));
   }
 
+  /* ====== RENDER ====== */
   return (
-    <div className="relative flex flex-col w-full h-full bg-slate-50 overflow-hidden">
-      <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="flex items-baseline leading-none">
-            <span className="text-2xl font-bold text-blue-900">M</span>
-            <span className="text-2xl font-bold text-green-600">L</span>
-            <span className="text-2xl font-bold text-blue-900">S</span>
+    <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", background: "#F6F7FA", overflow: "hidden", position: "relative" }}>
+
+      {/* ── Header ── */}
+      <div style={{ background: "#fff", borderBottom: "1px solid #E4E7EC", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "baseline", lineHeight: 1 }}>
+            <span style={{ fontSize: 22, fontWeight: 800, color: "#1E2A56" }}>M</span>
+            <span style={{ fontSize: 22, fontWeight: 800, color: "#2E9E45" }}>L</span>
+            <span style={{ fontSize: 22, fontWeight: 800, color: "#1E2A56" }}>S</span>
           </div>
-          <div className="border-l border-slate-300 pl-2">
-            <div className="font-semibold text-blue-900 text-sm leading-tight">Medical Laboratoire Service</div>
-            <div className="text-slate-500 text-xs">Assistant commercial digital</div>
+          <div style={{ borderLeft: "1px solid #E4E7EC", paddingLeft: 10 }}>
+            <div style={{ fontWeight: 700, color: "#1E2A56", fontSize: 13, lineHeight: 1.2 }}>Assistant commercial MLS</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#2E9E45", display: "inline-block" }}></span>
+              <span style={{ fontSize: 11, color: "#6B7280", fontWeight: 500 }}>En ligne · répond en quelques secondes</span>
+            </div>
           </div>
         </div>
-        <button onClick={() => { setShowAdmin(true); setAdminUnlocked(false); setAdminCodeInput(""); }} className="text-slate-400 hover:text-blue-900" title="Configuration">
-          <Settings size={18} />
+        <button
+          onClick={() => { setShowAdmin(true); setAdminUnlocked(false); setAdminCodeInput(""); }}
+          style={{ color: "#8B96A8", background: "none", border: "none", cursor: "pointer", padding: 4, borderRadius: 6 }}
+          title="Configuration">
+          <Settings size={17} />
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
+      {/* ── Messages ── */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
         {messages.map((m, i) => (
-          <div key={i} className={"flex " + (m.role === "user" ? "justify-end" : "justify-start")}>
-            <div className={"w-3/4 rounded-lg px-3 py-2 text-sm text-left " + (m.role === "user" ? "bg-blue-900 text-white" : "bg-white border border-slate-200 text-slate-800")}>
-              {m.parts.map((part, k) =>
-                part.type === "text" ? (
-                  <div key={k} className="whitespace-pre-wrap">{part.content}</div>
-                ) : (
-                  <ProductCard key={k} product={part.data} onAdd={addToCart} />
-                )
-              )}
+          <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start", marginBottom: 4 }}>
+            <div style={{ maxWidth: "78%", minWidth: 0 }}>
+              <div style={{
+                background: m.role === "user" ? "#1E2A56" : "#fff",
+                color: m.role === "user" ? "#fff" : "#2B3040",
+                border: m.role === "user" ? "none" : "1px solid #E4E7EC",
+                borderRadius: m.role === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+                padding: "10px 14px",
+                fontSize: 13,
+                lineHeight: 1.6,
+                fontWeight: 400
+              }}>
+                {m.parts.map((part, k) =>
+                  part.type === "text" ? (
+                    <div key={k} style={{ whiteSpace: "pre-wrap" }}>{part.content}</div>
+                  ) : (
+                    <ProductCard key={k} product={part.data} onAdd={addToCart} />
+                  )
+                )}
+              </div>
             </div>
+            {/* Suggestion chips */}
+            {m.role === "assistant" && m.suggestions && m.suggestions.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8, maxWidth: "90%" }}>
+                {m.suggestions.map((s, k) => (
+                  <button key={k} onClick={() => sendMessage(s)}
+                    style={{
+                      fontSize: 12, fontWeight: 600, color: "#1E2A56",
+                      background: "#fff", border: "1.5px solid #E4E7EC",
+                      borderRadius: 999, padding: "5px 12px", cursor: "pointer",
+                      fontFamily: "inherit", transition: "border-color 0.15s, background 0.15s",
+                      outline: "none"
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = "#1E2A56"; e.currentTarget.style.background = "#F6F7FA"; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = "#E4E7EC"; e.currentTarget.style.background = "#fff"; }}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ))}
+
+        {/* Loading dots */}
         {loading && (
-          <div className="flex justify-start">
-            <div className="bg-white border border-slate-200 rounded-lg px-3 py-2 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
-              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
-              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
+          <div style={{ display: "flex", justifyContent: "flex-start" }}>
+            <div style={{ background: "#fff", border: "1px solid #E4E7EC", borderRadius: "18px 18px 18px 4px", padding: "12px 16px", display: "flex", alignItems: "center", gap: 5 }}>
+              {[0, 150, 300].map((delay, i) => (
+                <span key={i} className="dot-bounce" style={{ width: 7, height: 7, background: "#8B96A8", borderRadius: "50%", display: "inline-block", animationDelay: delay + "ms" }}></span>
+              ))}
             </div>
           </div>
         )}
         <div ref={endRef} />
       </div>
 
+      {/* Toast */}
       {toast && (
-        <div className="absolute left-1/2 bottom-24 bg-green-600 text-white text-xs rounded px-3 py-1.5 shadow" style={{ transform: "translateX(-50%)" }}>
+        <div style={{
+          position: "absolute", left: "50%", bottom: 84,
+          transform: "translateX(-50%)",
+          background: "#2B3040", color: "#fff", fontSize: 12, fontWeight: 600,
+          borderRadius: 999, padding: "7px 16px", boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+          whiteSpace: "nowrap", zIndex: 20
+        }}>
           {toast}
         </div>
       )}
 
-      <div className="px-3 pt-2 flex justify-center gap-2 border-t border-slate-200 bg-white shrink-0">
-        <div className="w-3/4 flex gap-2">
-        <button onClick={() => setShowCart(true)} className="flex-1 flex items-center justify-center gap-1 text-xs bg-green-600 text-white rounded px-2 py-1.5 hover:bg-green-700">
-          <ShoppingCart size={13} /> Panier
-          {cartCount() > 0 && <span className="ml-1 bg-white text-green-700 rounded-full px-1.5 text-xs leading-none py-0.5">{cartCount()}</span>}
-        </button>
-        <button onClick={() => { setCommercialVille(""); openForm("contact", ""); }} className="flex-1 flex items-center justify-center gap-1 text-xs bg-blue-900 text-white rounded px-2 py-1.5 hover:bg-blue-800">
-          <Phone size={13} /> Contact
-        </button>
+      {/* ── Action buttons + Input ── */}
+      <div style={{ background: "#fff", borderTop: "1px solid #E4E7EC", flexShrink: 0 }}>
+        <div style={{ padding: "10px 12px 0", display: "flex", justifyContent: "center" }}>
+          <div style={{ display: "flex", gap: 8, width: "100%", maxWidth: 480 }}>
+            <button
+              onClick={() => setShowCart(true)}
+              style={{
+                flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                fontSize: 13, fontWeight: 700, color: "#2E9E45",
+                background: "#fff", border: "1.5px solid #2E9E45",
+                borderRadius: 10, padding: "8px 4px", cursor: "pointer", fontFamily: "inherit"
+              }}>
+              <ShoppingCart size={14} /> Panier
+              {cartCount() > 0 && (
+                <span style={{ background: "#2E9E45", color: "#fff", borderRadius: 999, fontSize: 10, fontWeight: 700, padding: "1px 6px", lineHeight: 1.5 }}>
+                  {cartCount()}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => { setCommercialVille(""); openForm("contact", ""); }}
+              style={{
+                flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                fontSize: 13, fontWeight: 700, color: "#1E2A56",
+                background: "#fff", border: "1.5px solid #1E2A56",
+                borderRadius: 10, padding: "8px 4px", cursor: "pointer", fontFamily: "inherit"
+              }}>
+              <Phone size={14} /> Commercial
+            </button>
+          </div>
+        </div>
+        <div style={{ padding: "10px 12px 12px", display: "flex", gap: 8, alignItems: "center" }}>
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") sendMessage(); }}
+            placeholder="Posez votre question sur nos produits..."
+            style={{
+              flex: 1, border: "1.5px solid #E4E7EC", borderRadius: 12,
+              padding: "10px 14px", fontSize: 13, outline: "none",
+              color: "#2B3040", background: "#F6F7FA", fontFamily: "inherit",
+              transition: "border-color 0.15s"
+            }}
+            onFocus={e => e.target.style.borderColor = "#1E2A56"}
+            onBlur={e => e.target.style.borderColor = "#E4E7EC"}
+          />
+          <button
+            onClick={() => sendMessage()}
+            disabled={loading}
+            style={{
+              width: 42, height: 42, borderRadius: 12,
+              background: loading ? "#8B96A8" : "#2E9E45",
+              border: "none", color: "#fff", cursor: loading ? "default" : "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0, transition: "background 0.15s"
+            }}>
+            {loading ? <Loader2 size={16} /> : <Send size={16} />}
+          </button>
         </div>
       </div>
 
-      <div className="p-3 bg-white flex gap-2 shrink-0">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") sendMessage(input); }}
-          placeholder="Posez votre question sur nos produits..."
-          className="flex-1 border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
-        />
-        <button onClick={() => sendMessage(input)} disabled={loading} className="bg-blue-900 text-white rounded px-3 py-2 hover:bg-blue-800 disabled:opacity-50">
-          {loading ? <Loader2 size={16} /> : <Send size={16} />}
-        </button>
-      </div>
-
+      {/* ── Modal Panier ── */}
       {showCart && (
-        <div className="fixed inset-0 bg-slate-900 bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-4 w-full" style={{ maxWidth: "420px", maxHeight: "80vh" }}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="font-semibold text-slate-800">Demande de devis</div>
-              <button onClick={() => setShowCart(false)}><X size={18} className="text-slate-400" /></button>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(30,42,86,0.4)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 50, padding: 0 }}>
+          <div style={{ background: "#fff", borderRadius: "20px 20px 0 0", padding: "20px 16px 32px", width: "100%", maxWidth: 480, maxHeight: "80vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <div style={{ fontWeight: 800, color: "#1E2A56", fontSize: 16 }}>Panier — Demande de devis</div>
+              <button onClick={() => setShowCart(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#8B96A8" }}><X size={18} /></button>
             </div>
             {cart.length === 0 ? (
-              <div className="text-sm text-slate-500">Aucun produit sélectionné. Ajoutez des produits depuis les réponses de l'assistant pour préparer votre demande de devis.</div>
+              <div style={{ fontSize: 13, color: "#6B7280", textAlign: "center", padding: "24px 0" }}>
+                Aucun produit sélectionné.<br />Ajoutez des produits depuis les réponses de l'assistant.
+              </div>
             ) : (
-              <div className="space-y-2 overflow-y-auto" style={{ maxHeight: "50vh" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {cart.map((item, i) => (
-                  <div key={i} className="flex items-center gap-2 border border-slate-200 rounded p-2">
-                    <div className="flex-1">
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, border: "1px solid #E4E7EC", borderRadius: 12, padding: "10px 12px" }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       {item.url ? (
-                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-900 hover:underline">{item.name}</a>
+                        <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, fontWeight: 700, color: "#1E2A56", textDecoration: "none" }}>{item.name}</a>
                       ) : (
-                        <div className="text-sm font-medium text-slate-800">{item.name}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "#2B3040" }}>{item.name}</div>
                       )}
-                      {item.ref && <div className="text-xs text-slate-400">Réf. {item.ref}</div>}
-                      <div className="flex items-center gap-2 mt-1">
-                        <button onClick={() => updateQty(i, -1)} className="w-6 h-6 border border-slate-300 rounded text-slate-600">-</button>
-                        <input type="number" min="1" value={item.quantity} onChange={(e) => setQty(i, e.target.value)} className="w-12 border border-slate-300 rounded text-xs text-center py-1" />
-                        <button onClick={() => updateQty(i, 1)} className="w-6 h-6 border border-slate-300 rounded text-slate-600">+</button>
+                      {item.ref && <div style={{ fontSize: 11, color: "#8B96A8", marginTop: 1 }}>Réf. {item.ref}</div>}
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
+                        <button onClick={() => updateQty(i, -1)} style={{ width: 26, height: 26, border: "1px solid #E4E7EC", borderRadius: 6, background: "#fff", cursor: "pointer", fontSize: 14, color: "#6B7280" }}>-</button>
+                        <input type="number" min="1" value={item.quantity} onChange={(e) => setQtyDirect(i, e.target.value)} style={{ width: 40, border: "1px solid #E4E7EC", borderRadius: 6, fontSize: 12, textAlign: "center", padding: "3px 0", fontFamily: "inherit" }} />
+                        <button onClick={() => updateQty(i, 1)} style={{ width: 26, height: 26, border: "1px solid #E4E7EC", borderRadius: 6, background: "#fff", cursor: "pointer", fontSize: 14, color: "#6B7280" }}>+</button>
                       </div>
                     </div>
-                    <button onClick={() => removeFromCart(i)} className="text-slate-400 hover:text-red-500"><X size={16} /></button>
+                    <button onClick={() => removeFromCart(i)} style={{ background: "none", border: "none", cursor: "pointer", color: "#8B96A8", flexShrink: 0 }}><X size={16} /></button>
                   </div>
                 ))}
               </div>
             )}
             {cart.length > 0 && (
-              <button onClick={() => { setShowCart(false); openForm("devis", ""); }} className="w-full mt-3 bg-blue-900 text-white rounded px-3 py-2 text-sm hover:bg-blue-800">
-                Envoyer ma demande de devis ({cartCount()})
+              <button
+                onClick={() => { setShowCart(false); openForm("devis", ""); }}
+                style={{ width: "100%", marginTop: 16, background: "#1E2A56", color: "#fff", border: "none", borderRadius: 12, padding: "13px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                Envoyer ma demande de devis ({cartCount()} article{cartCount() > 1 ? "s" : ""})
               </button>
             )}
           </div>
         </div>
       )}
 
+      {/* ── Modal Contact ── */}
       {showForm && formType === "contact" && (
-        <div className="fixed inset-0 bg-slate-900 bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-4 w-full" style={{ maxWidth: "400px" }}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="font-semibold text-slate-800">Trouver mon commercial</div>
-              <button onClick={() => setShowForm(false)}><X size={18} className="text-slate-400" /></button>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(30,42,86,0.4)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 50 }}>
+          <div style={{ background: "#fff", borderRadius: "20px 20px 0 0", padding: "20px 16px 32px", width: "100%", maxWidth: 480 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <div style={{ fontWeight: 800, color: "#1E2A56", fontSize: 16 }}>Trouver mon commercial</div>
+              <button onClick={() => setShowForm(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#8B96A8" }}><X size={18} /></button>
             </div>
-            <div className="text-xs text-slate-500 mb-2">Choisissez votre région/ville pour connaître le commercial qui vous est assigné :</div>
-            <select value={commercialVille} onChange={(e) => setCommercialVille(e.target.value)} className="w-full border border-slate-300 rounded px-3 py-2 text-sm text-slate-700">
+            <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 10 }}>Choisissez votre ville pour connaître le commercial assigné à votre région.</div>
+            <select value={commercialVille} onChange={(e) => setCommercialVille(e.target.value)}
+              style={{ width: "100%", border: "1.5px solid #E4E7EC", borderRadius: 10, padding: "10px 12px", fontSize: 13, color: "#2B3040", background: "#F6F7FA", fontFamily: "inherit", outline: "none" }}>
               <option value="">Choisissez votre ville</option>
-              {allVilles().map((v, i) => (
-                <option key={i} value={v.ville}>{v.ville}</option>
-              ))}
+              {allVilles().map((v, i) => <option key={i} value={v.ville}>{v.ville}</option>)}
             </select>
             {commercialVille && (() => {
               const zone = findZoneByVille(commercialVille);
-              if (!zone) {
-                return <div className="mt-3 text-sm text-slate-600">Aucun commercial n'est encore assigné à cette ville.</div>;
-              }
+              if (!zone) return <div style={{ marginTop: 12, fontSize: 13, color: "#6B7280" }}>Aucun commercial assigné à cette ville pour l'instant.</div>;
               return (
-                <div className="mt-3 border border-slate-200 rounded p-3 bg-slate-50">
-                  <div className="text-sm font-medium text-slate-800">{zone.commercial || "Commercial à venir"}</div>
-                  <div className="text-sm text-slate-600 mt-0.5">
-                    {zone.telephone ? (
-                      <a href={"tel:" + zone.telephone} className="text-blue-900 hover:underline">{zone.telephone}</a>
-                    ) : (
-                      "Numéro à venir."
-                    )}
+                <div style={{ marginTop: 12, border: "1px solid #E4E7EC", borderRadius: 12, padding: "12px 14px", background: "#F6F7FA" }}>
+                  <div style={{ fontWeight: 700, color: "#1E2A56", fontSize: 14 }}>{zone.commercial || "Commercial à venir"}</div>
+                  <div style={{ fontSize: 13, color: "#6B7280", marginTop: 3 }}>
+                    {zone.telephone ? <a href={"tel:" + zone.telephone} style={{ color: "#2E9E45", fontWeight: 600 }}>{zone.telephone}</a> : "Numéro à venir"}
                   </div>
+                  <div style={{ fontSize: 11, color: "#8B96A8", marginTop: 4 }}>{zone.zone}</div>
                 </div>
               );
             })()}
@@ -583,124 +699,175 @@ function MLSChatbot() {
         </div>
       )}
 
+      {/* ── Modal Devis ── */}
       {showForm && formType === "devis" && (
-        <div className="fixed inset-0 bg-slate-900 bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-4 w-full overflow-y-auto" style={{ maxWidth: "400px", maxHeight: "85vh" }}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="font-semibold text-slate-800">Demande de devis</div>
-              <button onClick={() => setShowForm(false)}><X size={18} className="text-slate-400" /></button>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(30,42,86,0.4)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 50 }}>
+          <div style={{ background: "#fff", borderRadius: "20px 20px 0 0", padding: "20px 16px 24px", width: "100%", maxWidth: 480, maxHeight: "85vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <div style={{ fontWeight: 800, color: "#1E2A56", fontSize: 16 }}>Demande de devis</div>
+              <button onClick={() => setShowForm(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#8B96A8" }}><X size={18} /></button>
             </div>
-            <div className="space-y-2">
-              <input placeholder="Nom de l'entreprise *" value={formData.societe} onChange={(e) => setFormData({ ...formData, societe: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
-              <input placeholder="Nom du contact *" value={formData.nom} onChange={(e) => setFormData({ ...formData, nom: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
-              <input placeholder="Téléphone" value={formData.telephone} onChange={(e) => setFormData({ ...formData, telephone: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
-              <input type="email" placeholder="Email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
-              <div className="text-xs text-slate-400">Téléphone ou email requis (au moins un des deux)</div>
-              <select value={formData.region} onChange={(e) => setFormData({ ...formData, region: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm text-slate-700">
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {[
+                { ph: "Nom de l'entreprise *", key: "societe" },
+                { ph: "Nom du contact *", key: "nom" },
+                { ph: "Téléphone", key: "telephone" },
+                { ph: "Email", key: "email", type: "email" }
+              ].map(({ ph, key, type }) => (
+                <input key={key} type={type || "text"} placeholder={ph} value={formData[key]}
+                  onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
+                  style={{ width: "100%", border: "1.5px solid #E4E7EC", borderRadius: 10, padding: "10px 12px", fontSize: 13, color: "#2B3040", fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+                  onFocus={e => e.target.style.borderColor = "#1E2A56"}
+                  onBlur={e => e.target.style.borderColor = "#E4E7EC"}
+                />
+              ))}
+              <div style={{ fontSize: 11, color: "#8B96A8", marginTop: -4 }}>Téléphone ou email requis (au moins l'un des deux)</div>
+              <select value={formData.region} onChange={(e) => setFormData({ ...formData, region: e.target.value })}
+                style={{ width: "100%", border: "1.5px solid #E4E7EC", borderRadius: 10, padding: "10px 12px", fontSize: 13, color: formData.region ? "#2B3040" : "#8B96A8", fontFamily: "inherit", background: "#fff", outline: "none" }}>
                 <option value="">Votre ville *</option>
-                {allVilles().map((v, i) => (
-                  <option key={i} value={v.ville}>{v.ville}</option>
-                ))}
+                {allVilles().map((v, i) => <option key={i} value={v.ville}>{v.ville}</option>)}
               </select>
-              <textarea placeholder="Produit(s) concerné(s)" value={formData.produit} onChange={(e) => setFormData({ ...formData, produit: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" rows={3} />
-              <textarea placeholder={summarizing ? "Génération du résumé en cours..." : "Résumé du projet et du besoin"} value={formData.message} onChange={(e) => setFormData({ ...formData, message: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" rows={3} />
-              {formError && <div className="text-red-600 text-xs">{formError}</div>}
-              <button type="button" onClick={handleSubmitForm} className="w-full bg-blue-900 text-white rounded px-3 py-2 text-sm hover:bg-blue-800">Envoyer la demande</button>
+              <textarea placeholder="Produit(s) concerné(s)" value={formData.produit}
+                onChange={(e) => setFormData({ ...formData, produit: e.target.value })}
+                rows={3}
+                style={{ width: "100%", border: "1.5px solid #E4E7EC", borderRadius: 10, padding: "10px 12px", fontSize: 13, color: "#2B3040", fontFamily: "inherit", resize: "none", outline: "none", boxSizing: "border-box" }}
+                onFocus={e => e.target.style.borderColor = "#1E2A56"}
+                onBlur={e => e.target.style.borderColor = "#E4E7EC"}
+              />
+              <textarea
+                placeholder={summarizing ? "Génération du résumé en cours..." : "Résumé du projet et du besoin"}
+                value={formData.message}
+                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                rows={3}
+                style={{ width: "100%", border: "1.5px solid #E4E7EC", borderRadius: 10, padding: "10px 12px", fontSize: 13, color: "#2B3040", fontFamily: "inherit", resize: "none", outline: "none", boxSizing: "border-box" }}
+                onFocus={e => e.target.style.borderColor = "#1E2A56"}
+                onBlur={e => e.target.style.borderColor = "#E4E7EC"}
+              />
+              {formError && <div style={{ fontSize: 12, color: "#dc2626", fontWeight: 500 }}>{formError}</div>}
+              <button type="button" onClick={handleSubmitForm}
+                style={{ width: "100%", background: "#1E2A56", color: "#fff", border: "none", borderRadius: 12, padding: "13px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginTop: 4 }}>
+                Envoyer la demande
+              </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* ── Modal Admin ── */}
       {showAdmin && (
-        <div className="fixed inset-0 bg-slate-900 bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-4 w-full overflow-y-auto" style={{ maxWidth: "420px", maxHeight: "80vh" }}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="font-semibold text-slate-800">Configuration</div>
-              <button onClick={() => setShowAdmin(false)}><X size={18} className="text-slate-400" /></button>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(30,42,86,0.4)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 50 }}>
+          <div style={{ background: "#fff", borderRadius: "20px 20px 0 0", padding: "20px 16px 32px", width: "100%", maxWidth: 480, maxHeight: "85vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <div style={{ fontWeight: 800, color: "#1E2A56", fontSize: 16 }}>Configuration</div>
+              <button onClick={() => setShowAdmin(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#8B96A8" }}><X size={18} /></button>
             </div>
             {!adminUnlocked ? (
-              <div className="space-y-2">
-                <div className="text-xs text-slate-500">Réservé à l'équipe MLS. Saisissez le code d'accès.</div>
-                <input type="password" value={adminCodeInput} onChange={(e) => setAdminCodeInput(e.target.value)} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" placeholder="Code d'accès" />
-                <button onClick={unlockAdmin} className="w-full bg-blue-900 text-white rounded px-3 py-2 text-sm hover:bg-blue-800">Valider</button>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ fontSize: 12, color: "#6B7280" }}>Réservé à l'équipe MLS. Saisissez le code d'accès.</div>
+                <input type="password" value={adminCodeInput}
+                  onChange={(e) => setAdminCodeInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") unlockAdmin(); }}
+                  placeholder="Code d'accès"
+                  style={{ width: "100%", border: "1.5px solid #E4E7EC", borderRadius: 10, padding: "10px 12px", fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+                <button onClick={unlockAdmin}
+                  style={{ width: "100%", background: "#1E2A56", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  Valider
+                </button>
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className="flex border-b border-slate-200">
-                  {[
-                    { key: "general", label: "Général" },
-                    { key: "zones", label: "Zones" },
-                    { key: "demandes", label: "Demandes" },
-                    { key: "questions", label: "Questions" }
-                  ].map((t) => (
-                    <button
-                      key={t.key}
-                      onClick={() => setAdminTab(t.key)}
-                      className={"flex-1 text-xs py-2 border-b-2 " + (adminTab === t.key ? "border-blue-900 text-blue-900 font-medium" : "border-transparent text-slate-500")}
-                    >
+              <div>
+                <div style={{ display: "flex", borderBottom: "1px solid #E4E7EC", marginBottom: 16 }}>
+                  {[{ key: "general", label: "Général" }, { key: "zones", label: "Zones" }, { key: "demandes", label: "Demandes" }, { key: "questions", label: "Questions" }].map((t) => (
+                    <button key={t.key} onClick={() => setAdminTab(t.key)}
+                      style={{
+                        flex: 1, fontSize: 12, fontWeight: 600, padding: "8px 4px", border: "none", background: "none", cursor: "pointer", fontFamily: "inherit",
+                        color: adminTab === t.key ? "#1E2A56" : "#8B96A8",
+                        borderBottom: "2px solid " + (adminTab === t.key ? "#1E2A56" : "transparent"),
+                        marginBottom: -1
+                      }}>
                       {t.label}
                     </button>
                   ))}
                 </div>
 
                 {adminTab === "general" && (
-                  <div className="space-y-3">
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     <div>
-                      <div className="text-xs font-medium text-slate-600 mb-1">Email commercial (pour le bouton mailto)</div>
-                      <input value={config.salesEmail} onChange={(e) => setConfig({ ...config, salesEmail: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 6 }}>Email commercial</div>
+                      <input value={config.salesEmail} onChange={(e) => setConfig({ ...config, salesEmail: e.target.value })}
+                        style={{ width: "100%", border: "1.5px solid #E4E7EC", borderRadius: 10, padding: "10px 12px", fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
                     </div>
                     <div>
-                      <div className="text-xs font-medium text-slate-600 mb-1">URL Google Apps Script (optionnel, journalisation auto. vers Google Sheets)</div>
-                      <input value={config.sheetsUrl} onChange={(e) => setConfig({ ...config, sheetsUrl: e.target.value })} className="w-full border border-slate-300 rounded px-3 py-2 text-sm" placeholder="https://script.google.com/macros/s/.../exec" />
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 6 }}>URL Google Apps Script (optionnel)</div>
+                      <input value={config.sheetsUrl} onChange={(e) => setConfig({ ...config, sheetsUrl: e.target.value })}
+                        placeholder="https://script.google.com/macros/s/.../exec"
+                        style={{ width: "100%", border: "1.5px solid #E4E7EC", borderRadius: 10, padding: "10px 12px", fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
                     </div>
-                    <button onClick={saveConfig} className="w-full bg-blue-900 text-white rounded px-3 py-2 text-sm hover:bg-blue-800">Enregistrer</button>
+                    <button onClick={saveConfig}
+                      style={{ width: "100%", background: "#1E2A56", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                      Enregistrer
+                    </button>
                   </div>
                 )}
 
                 {adminTab === "zones" && (
-                  <div className="space-y-3">
-                    <div className="space-y-2 max-h-72 overflow-y-auto">
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 300, overflowY: "auto" }}>
                       {getZones().map((z, i) => (
-                        <div key={i} className="border border-slate-200 rounded p-2 space-y-1">
-                          <div className="flex items-center gap-2">
-                            <input value={z.zone} onChange={(e) => updateZoneField(i, "zone", e.target.value)} className="flex-1 border border-slate-300 rounded px-2 py-1 text-xs" placeholder="Nom de la zone" />
-                            <button onClick={() => removeZone(i)} className="text-slate-400 hover:text-red-500"><X size={14} /></button>
+                        <div key={i} style={{ border: "1px solid #E4E7EC", borderRadius: 10, padding: "10px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
+                          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                            <input value={z.zone} onChange={(e) => updateZoneField(i, "zone", e.target.value)} placeholder="Nom de la zone"
+                              style={{ flex: 1, border: "1px solid #E4E7EC", borderRadius: 8, padding: "5px 8px", fontSize: 12, fontFamily: "inherit", outline: "none" }} />
+                            <button onClick={() => removeZone(i)} style={{ background: "none", border: "none", cursor: "pointer", color: "#8B96A8" }}><X size={14} /></button>
                           </div>
-                          <input value={z.commercial} onChange={(e) => updateZoneField(i, "commercial", e.target.value)} className="w-full border border-slate-300 rounded px-2 py-1 text-xs" placeholder="Prénom du commercial" />
-                          <input value={z.telephone} onChange={(e) => updateZoneField(i, "telephone", e.target.value)} className="w-full border border-slate-300 rounded px-2 py-1 text-xs" placeholder="Numéro de téléphone" />
-                          <textarea value={(z.villes || []).join(", ")} onChange={(e) => updateZoneField(i, "villes", e.target.value)} className="w-full border border-slate-300 rounded px-2 py-1 text-xs" rows={2} placeholder="Villes séparées par des virgules" />
+                          <input value={z.commercial} onChange={(e) => updateZoneField(i, "commercial", e.target.value)} placeholder="Prénom du commercial"
+                            style={{ border: "1px solid #E4E7EC", borderRadius: 8, padding: "5px 8px", fontSize: 12, fontFamily: "inherit", outline: "none" }} />
+                          <input value={z.telephone} onChange={(e) => updateZoneField(i, "telephone", e.target.value)} placeholder="Numéro de téléphone"
+                            style={{ border: "1px solid #E4E7EC", borderRadius: 8, padding: "5px 8px", fontSize: 12, fontFamily: "inherit", outline: "none" }} />
+                          <textarea value={(z.villes || []).join(", ")} onChange={(e) => updateZoneField(i, "villes", e.target.value)} rows={2} placeholder="Villes séparées par des virgules"
+                            style={{ border: "1px solid #E4E7EC", borderRadius: 8, padding: "5px 8px", fontSize: 12, fontFamily: "inherit", resize: "none", outline: "none" }} />
                         </div>
                       ))}
                     </div>
-                    <button onClick={addZone} className="w-full border border-dashed border-slate-300 text-slate-600 rounded px-3 py-1.5 text-xs hover:bg-slate-50">+ Ajouter une zone</button>
-                    <button onClick={saveConfig} className="w-full bg-blue-900 text-white rounded px-3 py-2 text-sm hover:bg-blue-800">Enregistrer</button>
+                    <button onClick={addZone}
+                      style={{ width: "100%", border: "1.5px dashed #E4E7EC", borderRadius: 10, padding: "9px", fontSize: 12, fontWeight: 600, color: "#6B7280", background: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                      + Ajouter une zone
+                    </button>
+                    <button onClick={saveConfig}
+                      style={{ width: "100%", background: "#1E2A56", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                      Enregistrer
+                    </button>
                   </div>
                 )}
 
                 {adminTab === "demandes" && (
-                  <div className="space-y-1 max-h-72 overflow-y-auto">
-                    {recentLeads.length === 0 && <div className="text-xs text-slate-400">Aucune demande enregistrée pour le moment.</div>}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 320, overflowY: "auto" }}>
+                    {recentLeads.length === 0 && <div style={{ fontSize: 12, color: "#8B96A8", textAlign: "center", padding: "20px 0" }}>Aucune demande enregistrée.</div>}
                     {recentLeads.map((l, i) => (
-                      <div key={i} className="text-xs border border-slate-100 rounded p-2 bg-slate-50">
-                        <div className="font-medium">{l.societe} — {l.type === "devis" ? "Devis" : "Contact"}</div>
-                        <div className="text-slate-500">{l.nom} · {l.telephone} · {l.email}</div>
-                        <div className="text-slate-500">{l.region}</div>
-                        {l.produit && <div className="text-slate-500 whitespace-pre-wrap">Produit(s) : {l.produit}</div>}
+                      <div key={i} style={{ border: "1px solid #E4E7EC", borderRadius: 10, padding: "10px 12px", background: "#F6F7FA" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+                          <span style={{ fontWeight: 700, fontSize: 13, color: "#2B3040" }}>{l.societe}</span>
+                          <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999, background: l.type === "devis" ? "#E8F5EC" : "#F1F2F6", color: l.type === "devis" ? "#227836" : "#6B7280" }}>
+                            {l.type === "devis" ? "Devis" : "Contact"}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 12, color: "#6B7280" }}>{l.nom} · {l.telephone} · {l.email}</div>
+                        <div style={{ fontSize: 12, color: "#8B96A8", marginTop: 2 }}>{l.region}</div>
                       </div>
                     ))}
                   </div>
                 )}
 
                 {adminTab === "questions" && (
-                  <div className="space-y-1 max-h-72 overflow-y-auto">
-                    {unansweredQuestions.length === 0 && <div className="text-xs text-slate-400">Aucune question en attente pour le moment.</div>}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 320, overflowY: "auto" }}>
+                    {unansweredQuestions.length === 0 && <div style={{ fontSize: 12, color: "#8B96A8", textAlign: "center", padding: "20px 0" }}>Aucune question en attente.</div>}
                     {unansweredQuestions.map((q) => (
-                      <div key={q.id} className="text-xs border border-slate-100 rounded p-2 bg-slate-50 flex items-start justify-between gap-2">
-                        <div>
-                          <div className="text-slate-700 whitespace-pre-wrap">{q.question}</div>
-                          <div className="text-slate-400 mt-0.5">{new Date(q.timestamp).toLocaleString("fr-FR")}</div>
+                      <div key={q.id} style={{ border: "1px solid #E4E7EC", borderRadius: 10, padding: "10px 12px", background: "#F6F7FA", display: "flex", gap: 8, alignItems: "flex-start" }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 12, color: "#2B3040", lineHeight: 1.5 }}>{q.question}</div>
+                          <div style={{ fontSize: 11, color: "#8B96A8", marginTop: 3 }}>{new Date(q.timestamp).toLocaleString("fr-FR")}</div>
                         </div>
-                        <button onClick={() => deleteUnanswered(q.id)} className="text-slate-400 hover:text-red-500 shrink-0"><X size={14} /></button>
+                        <button onClick={() => deleteUnanswered(q.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#8B96A8", flexShrink: 0 }}><X size={14} /></button>
                       </div>
                     ))}
                   </div>
