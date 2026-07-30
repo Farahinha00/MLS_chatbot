@@ -62,7 +62,7 @@ function buildSystemPrompt(basePrompt, products) {
     const label = p.name + (p.ref ? " — Réf. " + p.ref : "");
     return label + " :\n" + (p.specs || "");
   }).join("\n\n---\n\n");
-  return basePrompt + "\n\nFICHES TECHNIQUES PRODUITS MLS (utilisez ces informations pour répondre précisément aux questions techniques ; pour chaque produit concerné, mentionnez que la fiche complète est téléchargeable) :\n\n" + block;
+  return basePrompt + "\n\nFICHES TECHNIQUES PRODUITS MLS (utilisez ces informations pour répondre précisément aux questions techniques. NE dites JAMAIS que la fiche est disponible sur le site mlslabo.ma — un bouton de téléchargement apparaît automatiquement sur la carte produit dans ce chat, inutile de le mentionner dans votre texte) :\n\n" + block;
 }
 
 const SYSTEM_PROMPT = `Vous êtes l'assistant commercial virtuel de Medical Laboratoire Service (MLS), distributeur marocain de dispositifs médicaux (plus de 3000 références, site https://www.mlslabo.ma/).
@@ -118,25 +118,34 @@ function ProductCard({ product, onAdd, datasheetUrl }) {
             {product.category}
           </div>
         )}
-        <a href={product.url} target="_blank" rel="noopener noreferrer"
-          style={{ fontSize: 13, fontWeight: 700, color: "#1E2A56", textDecoration: "none", lineHeight: 1.3, display: "block" }}
-          onMouseEnter={e => e.target.style.textDecoration = "underline"}
-          onMouseLeave={e => e.target.style.textDecoration = "none"}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#1E2A56", lineHeight: 1.3 }}>
           {product.name}
-        </a>
+        </div>
         {product.ref && (
           <div style={{ fontSize: 11, color: "#8B96A8", fontWeight: 500, marginTop: 2 }}>Réf. {product.ref}</div>
         )}
         {product.description && (
           <div style={{ fontSize: 12, color: "#6B7280", marginTop: 5, lineHeight: 1.45 }}>{product.description}</div>
         )}
-        {datasheetUrl && (
-          <a href={datasheetUrl} target="_blank" rel="noopener noreferrer"
-            style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "#1E2A56", textDecoration: "none", marginTop: 6, marginBottom: 2, opacity: 0.75 }}
-            onMouseEnter={e => e.currentTarget.style.opacity = 1}
-            onMouseLeave={e => e.currentTarget.style.opacity = 0.75}>
-            <ExternalLink size={11} /> Fiche technique
-          </a>
+        {(product.url || datasheetUrl) && (
+          <div style={{ display: "flex", gap: 10, marginTop: 6, marginBottom: 2, flexWrap: "wrap" }}>
+            {product.url && (
+              <a href={product.url} target="_blank" rel="noopener noreferrer"
+                style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "#2E9E45", textDecoration: "none", opacity: 0.85 }}
+                onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                onMouseLeave={e => e.currentTarget.style.opacity = 0.85}>
+                <ExternalLink size={11} /> Voir sur mlslabo.ma
+              </a>
+            )}
+            {datasheetUrl && (
+              <a href={datasheetUrl} target="_blank" rel="noopener noreferrer"
+                style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "#1E2A56", textDecoration: "none", opacity: 0.75 }}
+                onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                onMouseLeave={e => e.currentTarget.style.opacity = 0.75}>
+                <ExternalLink size={11} /> Fiche technique
+              </a>
+            )}
+          </div>
         )}
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>
           <input
