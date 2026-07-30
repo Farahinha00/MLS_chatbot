@@ -91,7 +91,7 @@ Règles strictes :
 - Lorsque vous proposez des produits, écrivez une seule phrase d'accroche très courte (ex : "Voici 3 modèles adaptés :" ou "Quelques options selon votre besoin :"), puis insérez directement les blocs PRODUCT à la suite, sans rien ajouter entre eux.
 - Pour CHAQUE produit recommandé (maximum 3), insérez immédiatement après la phrase d'accroche les blocs structurés suivants, tous à la suite sans texte intermédiaire :
 <PRODUCT>{"name":"nom du produit","ref":"référence exacte telle qu'indiquée sur mlslabo.ma (vide si introuvable)","description":"1 phrase, 15 mots maximum, usage principal uniquement","url":"lien exact vers la page produit mlslabo.ma","category":"catégorie en MAJUSCULES (ex: ORTHOPÉDIE, DIAGNOSTIC)"}</PRODUCT>
-- Si l'utilisateur exprime une intention claire de demande de devis (prix, devis, commande, quantité, achat), terminez votre réponse par <ACTION>devis</ACTION>
+- Si l'utilisateur exprime une intention claire de demande de devis ET a déjà mentionné au moins un produit ou besoin précis, terminez votre réponse par <ACTION>devis</ACTION>. Si l'utilisateur dit simplement "demander un devis" sans préciser de produit, posez-lui d'abord une question pour cerner son besoin (quel type de produit, quel usage, quelle structure) — ne déclenchez PAS <ACTION>devis</ACTION> sans contexte produit.
 - Si l'utilisateur souhaite simplement être recontacté ou a une question nécessitant un commercial, terminez par <ACTION>contact</ACTION>
 - Si, après avoir effectivement cherché sur mlslabo.ma et appliqué le rapprochement géographique le cas échéant, vous ne trouvez vraiment pas l'information demandée, dites-le honnêtement plutôt que d'inventer, proposez une mise en contact avec un commercial, et terminez votre réponse par <UNANSWERED>oui</UNANSWERED>
 - À la fin de certaines réponses (pas toutes), si cela aide naturellement l'utilisateur à aller plus loin, proposez 2 à 3 suggestions d'actions courtes sous forme de puces cliquables, en insérant exactement : <SUGGESTIONS>["Suggestion 1","Suggestion 2"]</SUGGESTIONS>. Les suggestions doivent UNIQUEMENT proposer des suites de conversation pertinentes : "Voir d'autres modèles", "Délais de livraison ?", "Produits similaires", "Caractéristiques techniques", "Compatibilité avec mon matériel ?", "Quelle différence entre ces modèles ?", "Produits pour [usage spécifique]", etc. N'incluez JAMAIS "Demander un devis" ni "Parler à un commercial" dans les suggestions (des boutons dédiés existent pour cela dans l'interface). N'ajoutez PAS de suggestions si la réponse se termine déjà par une question directe.
@@ -276,7 +276,10 @@ function MLSChatbot() {
     }
     const remaining = text.slice(lastIndex).trim();
     if (remaining) parts.push({ type: "text", content: remaining });
-    if (parts.length === 0) parts.push({ type: "text", content: text.trim() });
+    if (parts.length === 0) {
+      const fallback = text.trim();
+      parts.push({ type: "text", content: fallback || "Pour préparer votre devis, pourriez-vous me préciser les produits qui vous intéressent ?" });
+    }
     return { parts, products, action, unanswered, suggestions };
   }
 
@@ -592,7 +595,10 @@ function MLSChatbot() {
             {m.role === "assistant" && m.suggestions && m.suggestions.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8, maxWidth: "90%" }}>
                 {m.suggestions.map((s, k) => (
-                  <button key={k} onClick={() => sendMessage(s)}
+                  <button key={k} onClick={() => {
+                    if (s === "Parler à un commercial" || s === "Trouver mon commercial") { setShowCommercial(true); return; }
+                    sendMessage(s);
+                  }}
                     style={{
                       fontSize: 12, fontWeight: 600, color: "#1E2A56",
                       background: "#fff", border: "1.5px solid #E4E7EC",
