@@ -56,6 +56,15 @@ const MoreHoriz = (p) => <Icon {...p}><circle cx="5" cy="12" r="1" /><circle cx=
 const API_BASE_URL = "https://mls-chatbot-2g4f.onrender.com";
 const ANTHROPIC_PROXY_URL = API_BASE_URL + "/api/chat";
 
+function buildSystemPrompt(basePrompt, products) {
+  if (!products || products.length === 0) return basePrompt;
+  const block = products.map((p) => {
+    const label = p.name + (p.ref ? " — Réf. " + p.ref : "");
+    return label + " :\n" + (p.specs || "");
+  }).join("\n\n---\n\n");
+  return basePrompt + "\n\nFICHES TECHNIQUES PRODUITS MLS (utilisez ces informations pour répondre précisément aux questions techniques ; pour chaque produit concerné, mentionnez que la fiche complète est téléchargeable) :\n\n" + block;
+}
+
 const SYSTEM_PROMPT = `Vous êtes l'assistant commercial virtuel de Medical Laboratoire Service (MLS), distributeur marocain de dispositifs médicaux (plus de 3000 références, site https://www.mlslabo.ma/).
 
 Catégories disponibles : Diagnostic, Appareils électromédicaux, Instrumentation, Équipement médico-hospitalier, Aide patient & aide à la marche, Orthopédie, Sabots & vêtements médicaux, Gériatrie, Médical et pharmacie, Poids & mesures, Consommable médical, Santé et bien-être, Accessoires divers, Matériel didactique de médecine.
@@ -99,7 +108,7 @@ const ZONES_DEFAULT = [
 ];
 
 /* ---------- Carte produit redesignée ---------- */
-function ProductCard({ product, onAdd }) {
+function ProductCard({ product, onAdd, datasheetUrl }) {
   const [qty, setQty] = useState(1);
   return (
     <div style={{ borderRadius: 14, border: "1px solid #E4E7EC", background: "#fff", overflow: "hidden", marginTop: 8, marginBottom: 4 }}>
@@ -121,7 +130,15 @@ function ProductCard({ product, onAdd }) {
         {product.description && (
           <div style={{ fontSize: 12, color: "#6B7280", marginTop: 5, lineHeight: 1.45 }}>{product.description}</div>
         )}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10 }}>
+        {datasheetUrl && (
+          <a href={datasheetUrl} target="_blank" rel="noopener noreferrer"
+            style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "#1E2A56", textDecoration: "none", marginTop: 6, marginBottom: 2, opacity: 0.75 }}
+            onMouseEnter={e => e.currentTarget.style.opacity = 1}
+            onMouseLeave={e => e.currentTarget.style.opacity = 0.75}>
+            <ExternalLink size={11} /> Fiche technique
+          </a>
+        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>
           <input
             type="number" min="1" value={qty}
             onChange={(e) => setQty(Math.max(1, parseInt(e.target.value, 10) || 1))}
@@ -185,14 +202,20 @@ function MLSChatbot() {
   const [unansweredQuestions, setUnansweredQuestions] = useState([]);
   const [commercialVille, setCommercialVille] = useState("");
   const [adminTab, setAdminTab] = useState("general");
+  const [products, setProducts] = useState([]);
   const endRef = useRef(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(API_BASE_URL + "/api/config");
-        const data = await res.json();
-        if (data) setConfig((prev) => ({ ...prev, ...data }));
+        const [cfgRes, prodRes] = await Promise.all([
+          fetch(API_BASE_URL + "/api/config"),
+          fetch(API_BASE_URL + "/api/products")
+        ]);
+        const cfg = await cfgRes.json();
+        const prods = await prodRes.json();
+        if (cfg) setConfig((prev) => ({ ...prev, ...cfg }));
+        if (Array.isArray(prods)) setProducts(prods);
       } catch (e) {}
     })();
   }, []);
@@ -263,7 +286,7 @@ function MLSChatbot() {
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
           max_tokens: 1000,
-          system: SYSTEM_PROMPT,
+          system: buildSystemPrompt(SYSTEM_PROMPT, products),
           messages: apiMessages,
           tools: [{ type: "web_search_20250305", name: "web_search" }]
         })
@@ -514,7 +537,14 @@ function MLSChatbot() {
               <div key={k} style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, marginTop: 6, maxWidth: "92vw" }}>
                 {group.items.map((p, j) => (
                   <div key={j} style={{ minWidth: 170, maxWidth: 190, flexShrink: 0 }}>
-                    <ProductCard product={p.data} onAdd={addToCart} />
+                    <ProductCard product={p.data} onAdd={addToCart}
+                      datasheetUrl={(() => {
+                        const found = products.find((pr) =>
+                          (pr.ref && pr.ref === p.data.ref) ||
+                          pr.name.toLowerCase() === (p.data.name || "").toLowerCase()
+                        );
+                        return found ? found.datasheetUrl : null;
+                      })()} />
                   </div>
                 ))}
               </div>
@@ -798,7 +828,7 @@ function MLSChatbot() {
             ) : (
               <div>
                 <div style={{ display: "flex", borderBottom: "1px solid #E4E7EC", marginBottom: 16 }}>
-                  {[{ key: "general", label: "Général" }, { key: "zones", label: "Zones" }, { key: "demandes", label: "Demandes" }, { key: "questions", label: "Questions" }].map((t) => (
+                  {[{ key: "general", label: "Général" }, { key: "zones", label: "Zones" }, { key: "produits", label: "Produits" }, { key: "demandes", label: "Demandes" }, { key: "questions", label: "Questions" }].map((t) => (
                     <button key={t.key} onClick={() => setAdminTab(t.key)}
                       style={{
                         flex: 1, fontSize: 12, fontWeight: 600, padding: "8px 4px", border: "none", background: "none", cursor: "pointer", fontFamily: "inherit",
@@ -858,6 +888,31 @@ function MLSChatbot() {
                       style={{ width: "100%", background: "#1E2A56", color: "#fff", border: "none", borderRadius: 12, padding: "12px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                       Enregistrer
                     </button>
+                  </div>
+                )}
+
+                {adminTab === "produits" && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <div style={{ fontSize: 12, color: "#6B7280" }}>{products.length} fiche{products.length > 1 ? "s" : ""} technique{products.length > 1 ? "s" : ""} chargée{products.length > 1 ? "s" : ""}.</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 260, overflowY: "auto" }}>
+                      {products.map((p, i) => (
+                        <div key={i} style={{ border: "1px solid #E4E7EC", borderRadius: 10, padding: "8px 12px", background: "#F6F7FA", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                          <div>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: "#1E2A56" }}>{p.name}</div>
+                            {p.ref && <div style={{ fontSize: 11, color: "#8B96A8" }}>Réf. {p.ref}</div>}
+                          </div>
+                          {p.datasheetUrl && (
+                            <a href={p.datasheetUrl} target="_blank" rel="noopener noreferrer"
+                              style={{ fontSize: 11, color: "#2E9E45", fontWeight: 600, textDecoration: "none", flexShrink: 0 }}>
+                              Fiche ↗
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ fontSize: 11, color: "#8B96A8", marginTop: 4 }}>
+                      Pour modifier les fiches, mettez à jour le Google Sheet puis relancez la synchronisation depuis la console admin.
+                    </div>
                   </div>
                 )}
 

@@ -96,7 +96,7 @@ function loadDb() {
   try {
     return JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
   } catch (e) {
-    return { config: { salesEmail: "commercial@mlslabo.ma", sheetsUrl: "", zones: ZONES_DEFAULT }, leads: [], unanswered: [] };
+    return { config: { salesEmail: "commercial@mlslabo.ma", sheetsUrl: "", zones: ZONES_DEFAULT }, leads: [], unanswered: [], products: [] };
   }
 }
 
@@ -162,6 +162,26 @@ app.post("/api/unanswered", (req, res) => {
 app.delete("/api/unanswered/:id", (req, res) => {
   const db = loadDb();
   db.unanswered = db.unanswered.filter((q) => q.id !== req.params.id);
+  saveDb(db);
+  res.json({ ok: true });
+});
+
+app.get("/api/products", (req, res) => {
+  res.json(loadDb().products || []);
+});
+
+app.post("/api/products", (req, res) => {
+  const db = loadDb();
+  db.products = Array.isArray(req.body) ? req.body : db.products;
+  saveDb(db);
+  res.json({ ok: true });
+});
+
+app.put("/api/products/:ref", (req, res) => {
+  const db = loadDb();
+  const idx = db.products.findIndex((p) => p.ref === req.params.ref);
+  if (idx >= 0) db.products[idx] = { ...db.products[idx], ...req.body };
+  else db.products.push(req.body);
   saveDb(db);
   res.json({ ok: true });
 });
