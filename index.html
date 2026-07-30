@@ -280,25 +280,39 @@ function MLSChatbot() {
     setLoading(true);
     try {
       const apiMessages = newMessages.map((m) => ({ role: m.role, content: partsToText(m.parts) }));
-      const res = await fetch(ANTHROPIC_PROXY_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 1000,
-          system: buildSystemPrompt(SYSTEM_PROMPT, products),
-          messages: apiMessages,
-          tools: [{ type: "web_search_20250305", name: "web_search" }]
-        })
-      });
-      const data = await res.json();
-      const rawText = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
-      const { parts, products, action, unanswered, suggestions } = parseResponse(rawText || "Je n'ai pas pu trouver de réponse précise. Souhaitez-vous être mis en contact avec un commercial ?");
-      setMessages((prev) => [...prev, { role: "assistant", parts, suggestions }]);
-      if (action === "devis" && products.length > 0) {
-        products.forEach((p) => addToCart(p, 1));
+      let res;
+      try {
+        res = await fetch(ANTHROPIC_PROXY_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-6",
+            max_tokens: 1000,
+            system: buildSystemPrompt(SYSTEM_PROMPT, products),
+            messages: apiMessages,
+            tools: [{ type: "web_search_20250305", name: "web_search" }]
+          })
+        });
+      } catch (networkErr) {
+        setMessages((prev) => [...prev, { role: "assistant", parts: [{ type: "text", content: "Le serveur est momentanément indisponible. Veuillez réessayer dans quelques secondes." }], suggestions: ["Réessayer"] }]);
+        setLoading(false);
+        return;
       }
-      if (unanswered) {
+      let data;
+      try {
+        data = await res.json();
+      } catch (parseErr) {
+        setMessages((prev) => [...prev, { role: "assistant", parts: [{ type: "text", content: "Le serveur démarre, merci de patienter quelques secondes puis réessayez." }], suggestions: ["Réessayer"] }]);
+        setLoading(false);
+        return;
+      }
+      const rawText = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
+      const parsed = parseResponse(rawText || "Je n'ai pas pu trouver de réponse précise. Souhaitez-vous être mis en contact avec un commercial ?");
+      setMessages((prev) => [...prev, { role: "assistant", parts: parsed.parts, suggestions: parsed.suggestions }]);
+      if (parsed.action === "devis" && parsed.products.length > 0) {
+        parsed.products.forEach((p) => addToCart(p, 1));
+      }
+      if (parsed.unanswered) {
         try {
           await fetch(API_BASE_URL + "/api/unanswered", {
             method: "POST",
